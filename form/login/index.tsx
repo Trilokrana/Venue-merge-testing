@@ -117,6 +117,7 @@ const LoginForm = ({}: LoginFormProps) => {
     }
   }, [searchParams, router])
 
+  
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user?.id) {
