@@ -56,18 +56,23 @@ export async function fetchActiveVenues(): Promise<VenueWithRelations[]> {
   return (data ?? []) as VenueWithRelations[]
 }
 
-export async function fetchVenueById(id: string): Promise<VenueWithRelations | null> {
+export async function fetchVenueBySlug(slug: string): Promise<VenueWithRelations | null> {
   const supabase = createServiceSupabaseClient()
+  
+  // Check if slug is a valid UUID. If so, search by both slug and id, else only search by slug.
+  const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(slug || "")
+  const orCondition = isUuid ? `slug.eq.${slug},id.eq.${slug}` : `slug.eq.${slug}`
+
   const { data, error } = await supabase
     .from("venues")
     .select(venueSelect)
-    .eq("id", id)
+    .or(orCondition)
     .eq("is_active", true)
     .eq("calendar_sync", "connected")
     .maybeSingle()
 
   if (error) {
-    console.error("fetchVenueById", error)
+    console.error("fetchVenueBySlug", error)
     return null
   }
 

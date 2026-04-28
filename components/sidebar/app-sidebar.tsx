@@ -8,6 +8,7 @@ import {
   CircleHelp,
   Headset,
   LayoutDashboard,
+  List,
   LogOut,
   Settings,
 } from "lucide-react"
@@ -40,7 +41,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useUser } from "@/hooks/use-user"
+import { useUpdateUser, useUser } from "@/hooks/use-user"
 import { type SidebarRouteItem, sidebarRoutesByRole } from "@/lib/navigation/sidebar-routes"
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client"
 import Image from "next/image"
@@ -55,6 +56,7 @@ const navItemIcons: Record<string, React.ElementType> = {
   Settings: Settings,
   Help: CircleHelp,
   Support: Headset,
+  Listings: List,
 }
 
 function withNavIcons(items: SidebarRouteItem[]): NavItem[] {
@@ -213,7 +215,9 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   const { state } = useSidebar()
   const isExpanded = state === "expanded"
   const { data: user, isFetching, isLoading, isRefetching } = useUser()
-  const isUserLoading = Boolean(isLoading || isFetching || isRefetching)
+  const { isPending: isUpdatingUser } = useUpdateUser()
+
+  const isUserLoading = Boolean(isLoading || isFetching || isRefetching || isUpdatingUser)
   const defaulSidebarOptions: NavItem[] =
     user?.userType === "venue_owner"
       ? withNavIcons(sidebarRoutesByRole.venue_owner)
@@ -259,17 +263,6 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         </SidebarContent>
 
         <SidebarFooter>
-          <SidebarContent>
-            <SidebarGroup className="p-0">
-              <SidebarMenu className="gap-2">
-                {isUserLoading
-                  ? [0, 1, 2]?.map((skel) => <SidebarMenuSkeleton showIcon key={skel} />)
-                  : sidebarOptions
-                      .filter((item: NavItem) => item.title === "Support" || item.title === "Help")
-                      ?.map((item: NavItem) => <AppSidebarMenuItem key={item.title} item={item} />)}
-              </SidebarMenu>
-            </SidebarGroup>
-          </SidebarContent>
           {isUserLoading ? (
             <div className="border border-border rounded-lg p-1">
               <SidebarMenuSkeleton showIcon />
@@ -334,15 +327,6 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                     </DropdownMenuLabel>
 
                     <DropdownMenuSeparator />
-
-                    {/* <DropdownMenuGroup>
-                      <DropdownMenuItem>
-                        <Sparkles />
-                        Upgrade to Pro
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-
-                    <DropdownMenuSeparator /> */}
 
                     <DropdownMenuItem
                       onClick={async () => {

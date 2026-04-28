@@ -361,9 +361,9 @@ const OwnerBookingsPage = () => {
               className="px-4 py-3"
               style={{ boxShadow: "inset 0px 6px 10px -6px rgba(0, 0, 0, 0.31)" }}
             >
-              <div className="px-4 py-3 flex flex-col lg:flex-row gap-4 items-stretch">
+              <div className="px-4 py-3 flex flex-col lg:flex-row gap-4 items-start">
                 {/* Left Column: Venue + Actions */}
-                <div className="flex flex-col gap-3 flex-1 min-w-0">
+                <div className="flex flex-col gap-3 w-full lg:w-[45%]">
                   <VenueCard className="w-full" venue={currentRow.venue} variant="list" />
 
                   {currentRow.status === "pending" && !isApproved && (
@@ -399,11 +399,11 @@ const OwnerBookingsPage = () => {
                 </div>
 
                 {/* Right Column: Guest Information */}
-                <Card className="flex-1 min-w-0 gap-0">
-                  <CardHeader className="pb-4">
+                <Card className="w-full lg:w-[35%] flex flex-col gap-0 max-h-52.5">
+                  <CardHeader className="pb-4 shrink-0">
                     <CardTitle className="text-base font-semibold">Guest Information</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 overflow-y-auto">
                     {/* Guest Profile */}
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">

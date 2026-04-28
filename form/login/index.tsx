@@ -30,7 +30,7 @@ function postLoginPath(searchParams: ReturnType<typeof useSearchParams>) {
   return "/dashboard"
 }
 
-const LoginForm = ({}: LoginFormProps) => {
+const LoginForm = ({ }: LoginFormProps) => {
   const supabase = getSupabaseBrowserClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -64,6 +64,12 @@ const LoginForm = ({}: LoginFormProps) => {
         // 🔥 If missing → set default
         if (!accountType) {
           const defaultRole = "rentee"
+          const fullName = user.user_metadata?.first_name
+            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim()
+            : null;
+          const displayName = user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
+
+          const photoUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
 
           await Promise.all([
             supabase.auth.updateUser({
@@ -73,8 +79,9 @@ const LoginForm = ({}: LoginFormProps) => {
             }),
             supabase.from("users").upsert({
               id: user.id,
-              email: user.email,
               account_type: defaultRole,
+              display_name: displayName,
+              photo_url: photoUrl,
             }),
           ])
         }
@@ -124,6 +131,12 @@ const LoginForm = ({}: LoginFormProps) => {
 
         if (!accountType) {
           const defaultRole = "rentee"
+          const fullName = user.user_metadata?.first_name
+            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim()
+            : null;
+          const displayName = user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
+
+          const photoUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
 
           await Promise.all([
             supabase.auth.updateUser({
@@ -131,8 +144,9 @@ const LoginForm = ({}: LoginFormProps) => {
             }),
             supabase.from("users").upsert({
               id: user.id,
-              email: user.email,
               account_type: defaultRole,
+              display_name: displayName,
+              photo_url: photoUrl,
             }),
           ])
         }

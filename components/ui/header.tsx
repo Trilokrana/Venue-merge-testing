@@ -19,6 +19,9 @@ import {
 import { User } from "@supabase/supabase-js"
 import { useUser } from "@/hooks/use-user"
 
+// ----------------------------------------------------------------------
+// Types & Config
+// ----------------------------------------------------------------------
 
 type NavLink = {
   label: string
@@ -224,7 +227,7 @@ function ScrollToTopButton({ visible }: { visible: boolean }) {
   )
 }
 
-export function GlobalHeader() {
+export default function Header() {
   const scrolled = useScrolled()
   const { data, isLoading } = useUser()
   const user = data?.user ?? null

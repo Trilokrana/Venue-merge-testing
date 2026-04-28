@@ -67,7 +67,7 @@ export function VenueDetailGallery({
       <>
         <div
           className={cn(
-            "group relative aspect-21/9 min-h-[220px] overflow-hidden rounded-xl md:min-h-[320px]",
+            "group relative aspect-square sm:aspect-21/9 min-h-[220px] overflow-hidden rounded-xl md:min-h-[320px]",
             className
           )}
           onClick={() => onGalleryImageClick?.(0)}

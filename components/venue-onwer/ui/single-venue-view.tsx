@@ -34,7 +34,7 @@ import { toast } from "sonner"
 
 import { Info } from "lucide-react"
 
-import VenueDetailLoading from "@/app/listings/[id]/loading"
+import VenueDetailLoading from "@/app/listings/[slug]/loading"
 import { formatVenueType } from "@/app/listings/data"
 import { VenueDetailMap } from "@/components/listings/venue-detail-map"
 import IconWrapper from "@/components/ui/icon-wrapper"
@@ -441,5 +441,5 @@ const SingleVenueView = ({
 export default SingleVenueView
 
 const VenueDetailsSkeleton = () => {
-  return <VenueDetailLoading showHeader={false} />
+  return <VenueDetailLoading />
 }

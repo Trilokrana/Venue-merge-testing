@@ -92,7 +92,7 @@ export function VenueListingCard({ venue, className, isOwnerView = false }: Prop
         className
       )}
     >
-      <Link href={`/listings/${venue.id}`} className="group flex h-full flex-col">
+      <Link href={`/listings/${venue.slug || venue.id}`} className="group flex h-full flex-col">
         {/* Image / carousel */}
         <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:aspect-[5/3]">
           {previewImages.length > 0 ? (

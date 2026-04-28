@@ -22,6 +22,7 @@ export const sidebarRoutesByRole: Record<AccountType, SidebarRouteItem[]> = {
         { title: "My Venues", url: "/venues" },
       ],
     },
+    { title: "Listings", url: "/listings", items: [] },
     {
       title: "Settings",
       url: "/settings",
@@ -30,12 +31,11 @@ export const sidebarRoutesByRole: Record<AccountType, SidebarRouteItem[]> = {
         { title: "Account", url: "/settings/account" },
       ],
     },
-    { title: "Help", url: "/help", items: [] },
-    { title: "Support", url: "/support", items: [] },
   ],
   rentee: [
     { title: "Dashboard", url: "/dashboard", items: [] },
     { title: "Bookings", url: "/bookings", items: [] },
+    { title: "Listings", url: "/listings", items: [] },
     {
       title: "Settings",
       url: "/settings",
@@ -44,8 +44,6 @@ export const sidebarRoutesByRole: Record<AccountType, SidebarRouteItem[]> = {
         { title: "Account", url: "/settings/account" },
       ],
     },
-    { title: "Help", url: "/help", items: [] },
-    { title: "Support", url: "/support", items: [] },
   ],
 }
 

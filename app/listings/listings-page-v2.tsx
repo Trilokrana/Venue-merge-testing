@@ -28,6 +28,7 @@ import { format } from "date-fns"
 import { MapPin, SlidersHorizontal, Zap } from "lucide-react"
 import Image from "next/image"
 import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsString, useQueryState } from "nuqs"
+import { GlobalFooter } from "@/components/ui/global-footer"
 
 const GOOGLE_MAPS_LIBRARIES = ["places"] as const
 
@@ -479,6 +480,7 @@ export function ListingsPageV2() {
         </div>
       </div>
       <ListingFiltersModal filterDialogControl={filterDialog} />
+      <GlobalFooter />
     </React.Fragment>
   )
 }

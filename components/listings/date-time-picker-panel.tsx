@@ -53,7 +53,7 @@ export function DateTimePickerPanel({
 
   return (
     <div className="flex flex-col gap-0 md:flex-row">
-      <div className="p-3 md:pr-4">
+      <div className="p-0">
         <Calendar
           mode="single"
           selected={date}

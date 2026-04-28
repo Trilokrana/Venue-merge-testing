@@ -202,7 +202,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto max-w-[calc(100vw-2rem)] rounded-2xl border border-primary/25 p-0 shadow-lg"
+            className="w-auto max-w-[calc(100vw-2rem)] shadow-lg p-0 max-h-[calc(80vh-2rem)] overflow-y-scrollsm:overflow-y-hidden"
             align="center"
           >
             <div>
@@ -218,7 +218,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                   disabled: (date) => isBefore(date, startOfDay(new Date())),
                 }}
               />
-              <div className="flex justify-end gap-2 border-t border-neutral-200 p-3">
+              <div className="flex justify-end gap-2 border-t p-1.5 px-3">
                 <Button
                   type="button"
                   variant="ghost"
@@ -233,7 +233,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                 </Button>
                 <Button
                   type="button"
-                  className="rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                  className="px-5"
                   onClick={() => setPickerOpen(false)}
                 >
                   Save date
@@ -346,11 +346,11 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                     </span>
                     <span className="tabular-nums font-medium">${subtotal.toFixed(2)} USD</span>
                   </div>
-                  <div className="flex justify-between gap-4 text-muted-foreground">
+                  <div className="flex justify-between gap-4">
                     <span>Attendees</span>
                     <span className="tabular-nums">{selectedGuestLabel}</span>
                   </div>
-                  <div className="flex justify-between gap-4 text-muted-foreground">
+                  <div className="flex justify-between gap-4">
                     <span className="inline-flex items-center gap-1">
                       Processing fee
                       <Info className="size-3.5 text-muted-foreground/90" />

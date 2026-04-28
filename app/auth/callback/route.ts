@@ -26,6 +26,13 @@ export async function GET(request: Request) {
       // 🔥 If account_type is missing → set default
       if (!accountType) {
         const defaultRole = "rentee"
+        
+        const fullName = user.user_metadata?.first_name 
+          ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim() 
+          : null;
+        const displayName = user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
+
+        const photoUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
 
         await Promise.all([
           // ✅ Update metadata
@@ -38,13 +45,13 @@ export async function GET(request: Request) {
           // ✅ Sync with your public.users table
           supabase.from("users").upsert({
             id: user.id,
-            email: user.email,
             account_type: defaultRole,
+            display_name: displayName,
+            photo_url: photoUrl,
           }),
         ])
       }
     }
-    // ** LOGIN SUCCESS End Here **
   }
 
   return NextResponse.redirect(`${requestUrl.origin}${next}`)
