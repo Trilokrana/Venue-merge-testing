@@ -6,9 +6,12 @@ import { DataTableToolbar } from "@/components/data-table/data-table-toolbar"
 import { cleanFilters } from "@/components/data-table/utils"
 import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { useOwnerBookings } from "@/components/venue-onwer/hooks/useMyBookings"
 import { useDataTable } from "@/hooks/use-data-table"
+import { approveBooking, rejectBooking } from "@/lib/bookings/cronofy-actions"
 import { BookingWithRelations } from "@/lib/bookings/types"
 import { formatDateTime } from "@/lib/format"
 import { getSortingStateParser } from "@/lib/parsers"
@@ -16,9 +19,20 @@ import { Database } from "@/lib/supabase/database.types"
 import { BookingFilters } from "@/schemas/booking.schema"
 import { ColumnDef } from "@tanstack/react-table"
 import { VariantProps } from "class-variance-authority"
-import { Ban, Check, ChevronDown, ChevronUp, ClockIcon, Pencil, X } from "lucide-react"
+import {
+  Ban,
+  Check,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+  ClockIcon,
+  X,
+  XSquare,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState } from "nuqs"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
 import { VenueCard } from "../cards/VenueCard"
 
 const getStatusIcon = (status: Database["public"]["Enums"]["booking_status"]) => {
@@ -206,51 +220,51 @@ const columns: ColumnDef<BookingWithRelations>[] = [
     },
     enableColumnFilter: true,
   },
-  {
-    id: "created_at",
-    accessorKey: "created_at",
-    header: ({ column }) => <DataTableColumnHeader column={column} label="Created At" />,
-    cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground break-all">
-        {formatDateTime(getValue<string>())}
-      </span>
-    ),
-    enableSorting: true,
-    size: 220,
-    meta: {
-      label: "Created at",
-      variant: "date",
-    },
-    enableColumnFilter: true,
-  },
-  {
-    id: "updated_at",
-    accessorKey: "updated_at",
-    header: ({ column }) => <DataTableColumnHeader column={column} label="Updated At" />,
-    cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground break-all">
-        {formatDateTime(getValue<string>())}
-      </span>
-    ),
-    enableSorting: true,
-    size: 220,
-    enableColumnFilter: true,
-  },
-  {
-    id: "actions",
-    accessorKey: "actions",
-    header: ({ column }) => <DataTableColumnHeader column={column} label="Actions" />,
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon-sm">
-          <Pencil />
-        </Button>
-      </div>
-    ),
-    enableSorting: false,
-    size: 90,
-    enableColumnFilter: false,
-  },
+  // {
+  //   id: "created_at",
+  //   accessorKey: "created_at",
+  //   header: ({ column }) => <DataTableColumnHeader column={column} label="Created At" />,
+  //   cell: ({ getValue }) => (
+  //     <span className="text-xs text-muted-foreground break-all">
+  //       {formatDateTime(getValue<string>())}
+  //     </span>
+  //   ),
+  //   enableSorting: true,
+  //   size: 220,
+  //   meta: {
+  //     label: "Created at",
+  //     variant: "date",
+  //   },
+  //   enableColumnFilter: true,
+  // },
+  // {
+  //   id: "updated_at",
+  //   accessorKey: "updated_at",
+  //   header: ({ column }) => <DataTableColumnHeader column={column} label="Updated At" />,
+  //   cell: ({ getValue }) => (
+  //     <span className="text-xs text-muted-foreground break-all">
+  //       {formatDateTime(getValue<string>())}
+  //     </span>
+  //   ),
+  //   enableSorting: true,
+  //   size: 220,
+  //   enableColumnFilter: true,
+  // },
+  // {
+  //   id: "actions",
+  //   accessorKey: "actions",
+  //   header: ({ column }) => <DataTableColumnHeader column={column} label="Actions" />,
+  //   cell: ({ row }) => (
+  //     <div className="flex items-center justify-center gap-2">
+  //       <Button variant="outline" size="icon-sm">
+  //         <Pencil />
+  //       </Button>
+  //     </div>
+  //   ),
+  //   enableSorting: false,
+  //   size: 90,
+  //   enableColumnFilter: false,
+  // },
 ]
 
 const OwnerBookingsPage = () => {
@@ -286,7 +300,27 @@ const OwnerBookingsPage = () => {
   }, [page, perPage, status, sort, created_at, query, start_at, end_at])
 
   const { data, isError, isLoading } = useOwnerBookings(filters)
+  const router = useRouter()
+  const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
+  const handleStatusUpdate = async (id: string, action: "approve" | "reject") => {
+    setIsUpdating(id)
+    try {
+      const res = action === "approve" ? await approveBooking(id) : await rejectBooking(id)
+      if (res.success) {
+        toast.success(`Booking ${action}d successfully.`)
+        router.refresh()
+        // Wait for page refresh
+        setTimeout(() => window.location.reload(), 500)
+      } else {
+        toast.error(`Failed to ${action} booking.`, { description: res.error })
+      }
+    } finally {
+      setIsUpdating(null)
+    }
+  }
+
+  console.log("🚀 ~ OwnerBookingsPage ~ data?.items :", data?.items)
   const { table } = useDataTable({
     data: data?.items ?? [],
     columns: columns,
@@ -321,21 +355,89 @@ const OwnerBookingsPage = () => {
         noDataText="No Bookings Found."
         renderExpandedRow={(row) => {
           const currentRow = row.original
+          const isApproved = currentRow.notes?.includes("[OWNER_APPROVED]")
           return (
             <div
               className="px-4 py-3"
               style={{ boxShadow: "inset 0px 6px 10px -6px rgba(0, 0, 0, 0.31)" }}
             >
-              <div className="px-4 py-3 text-xs text-muted-foreground sticky top-0 left-0">
-                <VenueCard
-                  className="max-w-md flex flex-row"
-                  venue={currentRow.venue}
-                  variant="list"
-                />
-                <div>
-                  Booked By: {currentRow?.rentee?.display_name}
-                  <Badge variant="outline">{currentRow?.rentee?.account_type}</Badge>
+              <div className="px-4 py-3 flex flex-col lg:flex-row gap-4 items-stretch">
+                {/* Left Column: Venue + Actions */}
+                <div className="flex flex-col gap-3 flex-1 min-w-0">
+                  <VenueCard className="w-full" venue={currentRow.venue} variant="list" />
+
+                  {currentRow.status === "pending" && !isApproved && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleStatusUpdate(currentRow.id, "approve")}
+                        disabled={isUpdating === currentRow.id}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckSquare className="mr-2 size-4" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleStatusUpdate(currentRow.id, "reject")}
+                        disabled={isUpdating === currentRow.id}
+                        className="flex-1"
+                      >
+                        <XSquare className="mr-2 size-4" />
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+
+                  {currentRow.status === "pending" && isApproved && (
+                    <div className="flex items-center justify-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/30 dark:text-yellow-500">
+                      <ClockIcon className="size-4" />
+                      Awaiting Payment from Guest
+                    </div>
+                  )}
                 </div>
+
+                {/* Right Column: Guest Information */}
+                <Card className="flex-1 min-w-0 gap-0">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-base font-semibold">Guest Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Guest Profile */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
+                        {currentRow?.rentee?.display_name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {currentRow?.rentee?.display_name || "Unknown Guest"}
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="secondary" className="text-xs font-normal capitalize">
+                            {currentRow?.rentee?.account_type}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Booking Notes */}
+                    {currentRow?.notes &&
+                      currentRow.notes.replace("[OWNER_APPROVED]", "").trim() && (
+                        <>
+                          <Separator />
+                          <div className="space-y-2">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Booking Notes
+                            </h4>
+                            <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                              {currentRow.notes.replace("[OWNER_APPROVED]", "").trim()}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )

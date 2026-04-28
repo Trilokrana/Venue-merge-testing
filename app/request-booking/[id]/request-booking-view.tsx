@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 
-import { createBooking } from "@/lib/bookings/cronofy-actions"
+import { createBooking, checkBookingApproval, confirmBookingPayment } from "@/lib/bookings/cronofy-actions"
 
 import { formatLocationLine, normalizeAddress, primaryImageUrl } from "@/app/listings/data"
 import { Button } from "@/components/ui/button"
@@ -90,6 +90,8 @@ export function RequestBookingView({ venue }: Props) {
   const searchParams = useSearchParams()
   const [step, setStep] = React.useState<1 | 2>(1)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [pendingBookingId, setPendingBookingId] = React.useState<string | null>(null)
+  const [isPolling, setIsPolling] = React.useState(false)
 
   // From query
   const dateStr = searchParams.get("date")
@@ -128,13 +130,56 @@ export function RequestBookingView({ venue }: Props) {
     mode: "onChange",
   })
 
+  React.useEffect(() => {
+    // Restore pending booking from URL or Session Storage
+    const urlBookingId = searchParams.get("bookingId")
+    const savedBookingId = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(`pending_booking_${venue.id}`) : null
+    
+    const activeBookingId = urlBookingId || savedBookingId
+    if (activeBookingId && !pendingBookingId) {
+      setPendingBookingId(activeBookingId)
+      setIsPolling(true)
+    }
+  }, [searchParams, venue.id, pendingBookingId])
+
+  React.useEffect(() => {
+    if (!pendingBookingId || !isPolling) return
+
+    let isMounted = true
+
+    const verifyApproval = async () => {
+      const isApproved = await checkBookingApproval(pendingBookingId)
+      if (isApproved && isMounted) {
+        setIsPolling(false)
+        setStep(2)
+        toast.success("Owner approved your request!", { description: "You can now make the payment." })
+      }
+    }
+    verifyApproval()
+    const intervalId = setInterval(verifyApproval, 3000)
+    
+    return () => {
+      isMounted = false
+      clearInterval(intervalId)
+    }
+  }, [pendingBookingId, isPolling])
+
   async function handleNext() {
     const isValid = await form.trigger(["activity", "castCrew", "projectName", "company", "about"])
-    if (isValid) setStep(2)
+    
+    // If instant book is disabled, skip payment and submit request directly
+    if (isValid) {
+      if (!venue.instabook) {
+        if (pendingBookingId) return 
+        setIsSubmitting(true);
+        await submitBookingRequest(form.getValues(), true); 
+      } else {
+        setStep(2)
+      }
+    }
   }
 
-  async function onSubmit(data: BookingFormValues) {
-    if (step === 1) return
+  async function submitBookingRequest(data: BookingFormValues, isRequest: boolean = false) {
     if (!dateObj || !startTime || !endTime) {
       toast.error("Please go back and select a date and time.")
       return
@@ -170,6 +215,7 @@ ${data.about}
         startAt: slotToISO(dateObj, startTime),
         endAt: slotToISO(dateObj, endTime),
         notes: fullNotes,
+        status: isRequest ? "pending" : "confirmed"
       })
 
       if (!result.success) {
@@ -177,14 +223,61 @@ ${data.about}
         return
       }
 
-      toast.success("Booking confirmed!", {
-        description: result.calendarEventCreated
-          ? "A calendar event has been added to the owner's calendar."
-          : "Your booking is confirmed.",
-      })
-      router.push("/bookings")
+      if (isRequest) {
+        setPendingBookingId(result.bookingId)
+        
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(`pending_booking_${venue.id}`, result.bookingId)
+        }
+        
+        const url = new URL(window.location.href)
+        url.searchParams.set("bookingId", result.bookingId)
+        window.history.replaceState({}, "", url.toString())
+
+        setIsPolling(true)
+        toast.success("Booking request sent!", {
+          description: "Your request is pending owner approval. Please don't close this page.",
+        })
+      } else {
+        toast.success("Booking confirmed!", {
+          description: result.calendarEventCreated
+            ? "A calendar event has been added to the owner's calendar."
+            : "Your booking is confirmed.",
+        })
+        router.push("/bookings")
+      }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function onSubmit(data: BookingFormValues) {
+    if (step === 1) return
+    if (!venue.instabook) {
+      if (!pendingBookingId) return
+      setIsSubmitting(true)
+      try {
+        // Mock payment processing time
+        await new Promise((r) => setTimeout(r, 1500))
+        
+        const res = await confirmBookingPayment(pendingBookingId)
+        if (res.success) {
+          if (typeof sessionStorage !== "undefined") {
+            sessionStorage.removeItem(`pending_booking_${venue.id}`)
+          }
+          toast.success("Payment successful! Booking confirmed.", {
+            description: "A calendar event is set for your booking."
+          })
+          router.push("/bookings")
+        } else {
+          toast.error("Payment failed. Please try again.", { description: res.error })
+        }
+      } finally {
+        setIsSubmitting(false)
+      }
+    } else {
+      // Instant book directly created
+      await submitBookingRequest(data, false)
     }
   }
 
@@ -309,8 +402,22 @@ ${data.about}
                   />
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button type="button" onClick={handleNext} size="lg" className="px-8">
-                    Next
+                  <Button type="button" onClick={handleNext} disabled={isSubmitting || isPolling} size="lg" className="px-8">
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : isPolling ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Waiting for Owner Approval...
+                      </>
+                    ) : venue.instabook ? (
+                      "Next"
+                    ) : (
+                      "Request to Book"
+                    )}
                   </Button>
                 </CardFooter>
               </Card>

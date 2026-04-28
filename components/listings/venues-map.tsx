@@ -6,6 +6,7 @@ import * as React from "react"
 import { normalizeAddress } from "@/app/listings/data"
 import { cn } from "@/lib/utils"
 import type { VenueWithRelations } from "@/lib/venues/types"
+import { ListingsWithRelations } from "@/schemas/listings.schema"
 
 const defaultCenter = { lat: 39.8283, lng: -98.5795 }
 
@@ -17,7 +18,7 @@ type MapVenue = {
 }
 
 type Props = {
-  venues: VenueWithRelations[]
+  venues: ListingsWithRelations[]
   searchCenter?: { lat: number; lng: number } | null
   selectedId: string | null
   onMarkerClick: (id: string) => void
@@ -37,7 +38,15 @@ function toMapVenues(venues: VenueWithRelations[]): MapVenue[] {
   return out
 }
 
-export function VenuesMap({ venues, searchCenter, selectedId, onMarkerClick, mapsLoaded, mapsError, className }: Props) {
+export function VenuesMap({
+  venues,
+  searchCenter,
+  selectedId,
+  onMarkerClick,
+  mapsLoaded,
+  mapsError,
+  className,
+}: Props) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
   const points = React.useMemo(() => toMapVenues(venues), [venues])
@@ -152,7 +161,7 @@ export function VenuesMap({ venues, searchCenter, selectedId, onMarkerClick, map
   return (
     <div
       className={cn(
-        "relative flex h-[350px] w-full min-h-[350px] flex-col overflow-hidden rounded border border-primary/25 lg:h-full lg:min-h-[min(50vh,420px)]",
+        "relative flex h-[350px] w-full min-h-[350px] flex-col overflow-hidden rounded-xl border border-primary/25 lg:h-full lg:min-h-[min(50vh,420px)]",
         className
       )}
     >
@@ -176,13 +185,13 @@ export function VenuesMap({ venues, searchCenter, selectedId, onMarkerClick, map
             icon={
               selectedId === p.id
                 ? {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 10,
-                  fillColor: "#111827",
-                  fillOpacity: 1,
-                  strokeColor: "#ffffff",
-                  strokeWeight: 2,
-                }
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#111827",
+                    fillOpacity: 1,
+                    strokeColor: "#ffffff",
+                    strokeWeight: 2,
+                  }
                 : undefined
             }
           />

@@ -1,16 +1,20 @@
 "use client"
 
+import { RenderToolbar, type FilterOption } from "@/components/common/toolbar/RenderToolbar"
+import { cleanFilters } from "@/components/data-table/utils"
 import BookingsPageSkeleton from "@/components/rentee/skeletons/BookingsPageSkeleton"
-import { BookingsToolbar } from "@/components/rentee/ui/BookingsToolbar"
 import { PaginationWithLinks } from "@/components/ui/pagination-with-links"
 import { useSidebar } from "@/components/ui/sidebar"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useDebounce } from "@/hooks/use-debounce"
-import { useModalControlQuery } from "@/hooks/use-modal-control-query"
 import { BookingWithRelations } from "@/lib/bookings/types"
+import { capitalizeFirstLetter } from "@/lib/format"
+import { Constants } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 import { BookingFilters } from "@/schemas/booking.schema"
+import { LayoutGrid, LayoutList } from "lucide-react"
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs"
-import { useLayoutEffect, useMemo } from "react"
+import { useMemo } from "react"
 import BookingCard from "../cards/BookingCard"
 import { useRenteeBookings } from "../hooks/useRenteeBookings"
 
@@ -23,27 +27,79 @@ const DEFAULT_META = {
   hasPreviousPage: false,
 }
 
+const filterOptions: FilterOption[] = [
+  {
+    key: "query",
+    label: "Search",
+    variant: "search",
+    placeholder: "Search bookings…",
+  },
+  {
+    key: "status",
+    label: "Status",
+    variant: "select",
+    options: Constants.public.Enums.booking_status.map((value) => ({
+      label: capitalizeFirstLetter(value ?? ""),
+      value,
+    })),
+  },
+  {
+    key: "event_status",
+    label: "Event Status",
+    variant: "select",
+    options: [
+      { label: "Upcoming", value: "upcoming" },
+      { label: "Past", value: "past" },
+    ],
+  },
+  {
+    key: "venue_type",
+    label: "Venue Type",
+    variant: "select",
+    options: Constants.public.Enums.venue_type.map((value) => ({
+      label: capitalizeFirstLetter(value ?? ""),
+      value,
+    })),
+  },
+  {
+    key: "start_at",
+    label: "Started At",
+    variant: "date",
+  },
+]
+
 const RenteeBookingsPage = () => {
   const { state } = useSidebar()
   const isSidebarOpen = state === "expanded"
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
-  const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(10))
-  const [query, setQuery] = useQueryState("query", parseAsString.withDefault(""))
 
+  // Pagination + view-mode are owned by the page.
+  const [page] = useQueryState("page", parseAsInteger.withDefault(1))
+  const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(10))
   const [view, setView] = useQueryState("mode", parseAsString.withDefault("grid"))
+
+  // Filter values are read from the URL — written by RenderToolbar.
+  // No setters here; we never want the page to fight the toolbar over URL ownership.
+  const [query] = useQueryState("query", parseAsString.withDefault(""))
+  const [start_at] = useQueryState("start_at", parseAsString.withDefault(""))
+  const [status] = useQueryState("status", parseAsString.withDefault(""))
+  const [venue_type] = useQueryState("venue_type", parseAsString.withDefault(""))
+  const [event_status] = useQueryState("event_status", parseAsString.withDefault("upcoming"))
+
   const debouncedQuery = useDebounce(query, 800)
 
-  const viewDialog = useModalControlQuery("view-venue-details")
-  const editDialog = useModalControlQuery("edit-venue-details")
-  const deleteDialog = useModalControlQuery("delete-venue-details")
-
-  const filters: BookingFilters = useMemo(() => {
-    const next: BookingFilters = { query: "" }
-    if (debouncedQuery) next.query = debouncedQuery
-    if (page != null) next.page = page
-    if (perPage != null) next.perPage = perPage
-    return next
-  }, [page, perPage, debouncedQuery])
+  const filters: BookingFilters = useMemo(
+    () =>
+      cleanFilters({
+        query: debouncedQuery,
+        page,
+        perPage,
+        start_at,
+        status,
+        venue_type,
+        event_status,
+      }) as BookingFilters,
+    [page, perPage, debouncedQuery, start_at, status, venue_type, event_status]
+  )
 
   const {
     data,
@@ -55,27 +111,40 @@ const RenteeBookingsPage = () => {
 
   const bookings = data?.items ?? []
   const meta = data?.meta ?? DEFAULT_META
-  const hasBookings = data?.items?.length ?? 0 > 0
-  console.log("🚀 ~ RenteeBookingsPage ~ bookings:", bookings)
+  const hasBookings = bookings.length > 0
 
-  useLayoutEffect(() => {
-    viewDialog.set(false)
-    editDialog.set(false)
-    deleteDialog.set(false)
-  }, [])
+  const handleView = (val: string) => {
+    if (!val) return
+    setView(val as "list" | "grid")
+  }
 
   return (
     <div className="space-y-3">
-      <BookingsToolbar
-        isLoading={isInitialLoading || isRefetching}
-        onSearch={(value) => {
-          setPage(1)
-          setQuery(value)
-        }}
-        onViewChange={(value) => {
-          setView(value)
-        }}
-      />
+      <RenderToolbar filterOptions={filterOptions} className="border-b border-border pb-4">
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm text-muted-foreground">View Mode {view}</span>
+          <ToggleGroup
+            type="single"
+            value={view}
+            defaultValue={view}
+            onValueChange={handleView}
+            className="border border-border rounded-lg overflow-hidden gap-0 h-8"
+            disabled={isInitialLoading || isRefetching}
+          >
+            <ToggleGroupItem
+              value="list"
+              className="h-8 w-8 rounded-none border-r border-border data-[state=on]:bg-muted"
+            >
+              <LayoutList className="size-3.5" />
+              <span className="sr-only">List view</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" className="h-8 w-8 rounded-none data-[state=on]:bg-muted">
+              <LayoutGrid className="size-3.5" />
+              <span className="sr-only">Grid view</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </RenderToolbar>
 
       <section className="relative min-h-[520px]">
         {isError ? (

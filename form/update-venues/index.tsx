@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { FileUploadGallery } from "@/components/ui/file-upload-gallery"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { GooglePlacesAutocomplete } from "@/components/ui/google-places-autocomplete"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -21,9 +22,7 @@ import { useCheckSlugExists } from "@/components/venue-onwer/hooks/useCheckSlug"
 import { useEditMyVenue } from "@/components/venue-onwer/hooks/useMyVenues"
 import AmenitySelector from "@/form/create-venues/components/AmenitySelector"
 import VenueRulesList, { validateUrl } from "@/form/create-venues/components/VenueRulesList"
-import { useDebounce } from "@/hooks/use-debounce"
 import type { FileMetadata, FileWithPreview } from "@/hooks/use-file-upload"
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete"
 import { useModalControlQuery } from "@/hooks/use-modal-control-query"
 import { formatTime, to24Hour, togglePeriod } from "@/lib/format"
 import { cn, parseOptionalFloat, parseOptionalInt } from "@/lib/utils"
@@ -40,7 +39,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { City, Country, State } from "country-state-city"
 import { Loader2 } from "lucide-react"
-import { ComponentProps, useEffect, useState } from "react"
+import { ComponentProps, useState } from "react"
 import { FieldPath, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -339,33 +338,39 @@ export function UpdateVenueForm({
     shouldUnregister: false,
   })
 
+  const [showPredictions, setShowPredictions] = useState(false)
+
   const {
     formState: { errors, isSubmitting },
 
     setValue,
   } = form
   // Google Places Autocomplete
-  const { inputRef } = useGooglePlacesAutocomplete({
-    onPlaceSelected: async (placeId: string) => {
-      try {
-        const address = await normalizePlaceDetails(placeId)
 
-        setValue("placeId", placeId)
-        setValue("address.address_line_1", address.street)
-        setValue("address.address_line_2", address.address_line_2 || "")
-        setValue("address.city", address.city)
-        setValue("address.state", address.state)
-        setValue("address.zip", address.zip)
-        setValue("address.country", address.country)
-        setValue("lat", address.lat)
-        setValue("lng", address.lng)
-        setValue("formatted_address", address.formatted_address)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed fetching place details"
-        toast.error(message)
+  async function handlePlaceSelected(placeId: string) {
+    try {
+      const address = await normalizePlaceDetails(placeId)
+
+      if (address.country !== "US") {
+        toast.error("Only US addresses are supported at this time")
+        return
       }
-    },
-  })
+
+      form.setValue("placeId", placeId)
+      form.setValue("address.address_line_1", address.street, { shouldValidate: true })
+      form.setValue("address.address_line_2", address.address_line_2 || "")
+      form.setValue("address.city", address.city, { shouldValidate: true })
+      form.setValue("address.state", address.state, { shouldValidate: true })
+      form.setValue("address.zip", address.zip, { shouldValidate: true })
+      form.setValue("address.country", address.country, { shouldValidate: true })
+      form.setValue("lat", address.lat)
+      form.setValue("lng", address.lng)
+      form.setValue("formatted_address", address.formatted_address)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed fetching place details"
+      toast.error(message)
+    }
+  }
 
   async function onSubmit(data: VenueFormOutput) {
     const venueMessages = {
@@ -457,57 +462,57 @@ export function UpdateVenueForm({
     }))
   }
 
-  const slug = form.watch("slug")
-  const debouncedSlug = useDebounce(slug ?? "", 500)
+  // const slug = form.watch("slug")
+  // const debouncedSlug = useDebounce(slug ?? "", 500)
 
-  useEffect(() => {
-    setSlugGate("idle")
-  }, [slug])
+  // useEffect(() => {
+  //   setSlugGate("idle")
+  // }, [slug])
 
-  useEffect(() => {
-    if (!debouncedSlug) {
-      setSlugGate("idle")
-      return
-    }
+  // useEffect(() => {
+  //   if (!debouncedSlug) {
+  //     setSlugGate("idle")
+  //     return
+  //   }
 
-    let toastId: string | number | undefined
+  //   let toastId: string | number | undefined
 
-    const checkSlug = async () => {
-      try {
-        toastId = toast.loading("Checking slug...", {
-          position: "top-right",
-        })
+  //   const checkSlug = async () => {
+  //     try {
+  //       toastId = toast.loading("Checking slug...", {
+  //         position: "top-right",
+  //       })
 
-        const res = await checkSlugExists(debouncedSlug)
+  //       const res = await checkSlugExists(debouncedSlug)
 
-        if (res.data) {
-          setSlugGate("taken")
-          form.setError("slug", {
-            type: "manual",
-            message: "Slug is already taken",
-          })
-          toast.error(`(${debouncedSlug}) is already taken`, {
-            id: toastId,
-          })
-        } else {
-          setSlugGate("available")
-          form.clearErrors("slug")
-          toast.success(`(${debouncedSlug}) is available`, {
-            id: toastId,
-          })
-        }
-      } catch (err) {
-        setSlugGate("check_failed")
-        form.setError("slug", {
-          type: "manual",
-          message: "Failed to check slug",
-        })
-        toast.error("Failed to check slug", { id: toastId })
-      }
-    }
+  //       if (res.data) {
+  //         setSlugGate("taken")
+  //         form.setError("slug", {
+  //           type: "manual",
+  //           message: "Slug is already taken",
+  //         })
+  //         toast.error(`(${debouncedSlug}) is already taken`, {
+  //           id: toastId,
+  //         })
+  //       } else {
+  //         setSlugGate("available")
+  //         form.clearErrors("slug")
+  //         toast.success(`(${debouncedSlug}) is available`, {
+  //           id: toastId,
+  //         })
+  //       }
+  //     } catch (err) {
+  //       setSlugGate("check_failed")
+  //       form.setError("slug", {
+  //         type: "manual",
+  //         message: "Failed to check slug",
+  //       })
+  //       toast.error("Failed to check slug", { id: toastId })
+  //     }
+  //   }
 
-    if (form.watch("slug") !== defaultValues?.slug) checkSlug()
-  }, [debouncedSlug, checkSlugExists, form])
+  //   if (form.watch("slug") !== defaultValues?.slug) checkSlug()
+  // }, [debouncedSlug, checkSlugExists, form])
 
   return (
     <MultiStepForm<FormData> form={form} steps={formSteps} initialStep={0}>
@@ -536,15 +541,43 @@ export function UpdateVenueForm({
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>Venue Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ada Lovelace" autoComplete="name" {...field} />
+                            <Input
+                              placeholder="Enter a venue name"
+                              autoComplete="name"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
+                      control={form.control}
+                      name="venue_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue Type</FormLabel>
+                          <FormControl>
+                            <SimpleSelect
+                              placeholder="Select a venue type"
+                              options={venueTypeOptions}
+                              {...field}
+                              value={venueTypeOptions?.find(
+                                (option) => option.value === field.value
+                              )}
+                              onChange={(value) => {
+                                const selectedOption = value as OptionObj
+                                field.onChange(selectedOption?.value)
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage className="break-all" />
+                        </FormItem>
+                      )}
+                    />
+                    {/* <FormField
                       control={form.control}
                       name="slug"
                       render={({ field }) => (
@@ -562,46 +595,9 @@ export function UpdateVenueForm({
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    /> */}
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Description"
-                            autoComplete="description"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="venue_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Venue Type</FormLabel>
-                        <FormControl>
-                          <SimpleSelect
-                            options={venueTypeOptions}
-                            {...field}
-                            value={venueTypeOptions?.find((option) => option.value === field.value)}
-                            onChange={(value) => {
-                              const selectedOption = value as OptionObj
-                              field.onChange(selectedOption?.value)
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage className="break-all" />
-                      </FormItem>
-                    )}
-                  />
+
                   <FormField
                     control={form.control}
                     name="event_types"
@@ -611,6 +607,7 @@ export function UpdateVenueForm({
                         <FormControl>
                           <SimpleSelect
                             isMulti
+                            placeholder="Select event types"
                             options={eventTypeOptions}
                             {...field}
                             value={eventTypeOptions?.filter(
@@ -627,6 +624,25 @@ export function UpdateVenueForm({
                                 )
                               }
                             }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="min-h-30"
+                            placeholder="Write a description for your venue..."
+                            autoComplete="description"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -885,22 +901,15 @@ export function UpdateVenueForm({
                         <FormItem>
                           <FormLabel>Address Line 1</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Address Line 1"
-                              autoComplete="address_line_1"
-                              type="text"
+                            <GooglePlacesAutocomplete
                               name={field.name}
-                              ref={(e) => {
-                                form.register("address.address_line_1").ref(e)
-                                if (e) {
-                                  ;(
-                                    inputRef as React.MutableRefObject<HTMLInputElement | null>
-                                  ).current = e
-                                }
-                              }}
-                              onBlur={field.onBlur}
+                              ref={field.ref}
                               value={field.value ?? ""}
-                              onChange={(e) => field.onChange(e.target.value)}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              countryRestriction="us"
+                              placeholder="Start typing a US address..."
+                              onPlaceSelected={handlePlaceSelected}
                             />
                           </FormControl>
                           <FormMessage />
@@ -937,8 +946,10 @@ export function UpdateVenueForm({
                           <FormLabel>Country</FormLabel>
                           <FormControl>
                             <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
                               options={updatedCountries}
-                              {...field}
                               value={
                                 updatedCountries?.find((option) => option.value === field.value) ||
                                 null
@@ -950,10 +961,12 @@ export function UpdateVenueForm({
                                 form.setValue("address.state", "", {
                                   shouldDirty: true,
                                   shouldValidate: true,
+                                  shouldTouch: true,
                                 })
                                 form.setValue("address.city", "", {
                                   shouldDirty: true,
                                   shouldValidate: true,
+                                  shouldTouch: true,
                                 })
                               }}
                             />
@@ -970,8 +983,10 @@ export function UpdateVenueForm({
                           <FormLabel>State</FormLabel>
                           <FormControl>
                             <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
                               options={updatedStates(form.watch("address.country"))}
-                              {...field}
                               value={
                                 updatedStates(form.watch("address.country"))?.find(
                                   (option) => option.value === field.value
@@ -984,8 +999,10 @@ export function UpdateVenueForm({
                                 form.setValue("address.city", "", {
                                   shouldDirty: true,
                                   shouldValidate: true,
+                                  shouldTouch: true,
                                 })
                               }}
+                              isDisabled={!form.watch("address.country")}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1000,11 +1017,13 @@ export function UpdateVenueForm({
                           <FormLabel>City</FormLabel>
                           <FormControl>
                             <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
                               options={updatedCities(
                                 form.watch("address.country"),
                                 form.watch("address.state")
                               )}
-                              {...field}
                               value={
                                 updatedCities(
                                   form.watch("address.country"),
@@ -1015,6 +1034,7 @@ export function UpdateVenueForm({
                                 const selectedOption = value as OptionObj
                                 field.onChange(selectedOption?.value ?? "")
                               }}
+                              isDisabled={!form.watch("address.state")}
                             />
                           </FormControl>
                           <FormMessage />

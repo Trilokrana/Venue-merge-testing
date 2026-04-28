@@ -119,13 +119,17 @@ export const PLANNING_OPTIONS = [
   "Event",
 ] as const
 
-export function normalizeAddress(venue: VenueWithRelations): VenueAddress | null {
-  const a = venue?.addresses
+export function normalizeAddress<T extends { addresses?: VenueAddress | VenueAddress[] | null }>(
+  venue: T
+): VenueAddress | null {
+  const a = venue.addresses
   if (!a) return null
   return Array.isArray(a) ? (a[0] ?? null) : a
 }
 
-export function primaryImageUrl(venue: VenueWithRelations): string | null {
+export function primaryImageUrl<T extends { images?: VenueImage[] | null }>(
+  venue: T
+): string | null {
   const imgs = venue.images
   if (!imgs?.length) return null
   const sorted = [...imgs].sort((a, b) => {

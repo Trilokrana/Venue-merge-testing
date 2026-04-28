@@ -1,25 +1,28 @@
 "use client"
 
+import { RenderToolbar, type FilterOption } from "@/components/common/toolbar/RenderToolbar"
+import { cleanFilters } from "@/components/data-table/utils"
 import { PaginationWithLinks } from "@/components/ui/pagination-with-links"
 import { useSidebar } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { VenueCard } from "@/components/venue-onwer/cards/VenueCard"
 import { useDeleteMyVenue, useMyVenues } from "@/components/venue-onwer/hooks/useMyVenues"
-import { isOwnerCalendarConnected } from "@/lib/venues/actions"
 import { DeleteVenueModal } from "@/components/venue-onwer/modal/DeleteVenueModal"
 import { EditVenueModal } from "@/components/venue-onwer/modal/EditVenueModal"
 import { ViewVenueModal } from "@/components/venue-onwer/modal/ViewVenueDetails"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useModalControlQuery } from "@/hooks/use-modal-control-query"
 import { cn } from "@/lib/utils"
+import { isOwnerCalendarConnected } from "@/lib/venues/actions"
 import { VenueWithRelations } from "@/lib/venues/types"
 import { VenueFilters } from "@/schemas/venue.schema"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { LayoutGrid, LayoutList } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs"
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Toolbar } from "../ui/toolbar"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 const DEFAULT_META = {
   page: 1,
@@ -35,7 +38,7 @@ const SKELETON_COUNT = 9
 function VenueCardSkeleton() {
   return (
     <div className="space-y-3 rounded-xl border bg-background p-3">
-      <Skeleton className="aspect-[16/10] w-full rounded-lg" />
+      <Skeleton className="aspect-16/10 w-full rounded-lg" />
       <Skeleton className="h-5 w-3/4" />
       <Skeleton className="h-4 w-1/2" />
       <Skeleton className="h-4 w-2/3" />
@@ -48,15 +51,27 @@ function VenueCardSkeleton() {
   )
 }
 
-const VenuesListingPage = () => {
+const filterOptions: FilterOption[] = [
+  {
+    key: "query",
+    label: "Search",
+    variant: "search",
+    placeholder: "Search bookings…",
+  },
+]
 
+const VenuesListingPage = () => {
   const { state } = useSidebar()
   const isSidebarOpen = state === "expanded"
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
+  // Pagination + view-mode are owned by the page.
+  const [page] = useQueryState("page", parseAsInteger.withDefault(1))
   const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(10))
-  const [query, setQuery] = useQueryState("query", parseAsString.withDefault(""))
-
   const [view, setView] = useQueryState("mode", parseAsString.withDefault("grid"))
+
+  // Filter values are read from the URL — written by RenderToolbar.
+  // No setters here; we never want the page to fight the toolbar over URL ownership.
+  const [query] = useQueryState("query", parseAsString.withDefault(""))
+
   const debouncedQuery = useDebounce(query, 800)
 
   const viewDialog = useModalControlQuery("view-venue-details")
@@ -65,13 +80,15 @@ const VenuesListingPage = () => {
 
   const [selectedVenue, setSelectedVenue] = useState<VenueWithRelations | null>(null)
 
-  const filters: VenueFilters = useMemo(() => {
-    const next: VenueFilters = {}
-    if (debouncedQuery) next.query = debouncedQuery
-    if (page != null) next.page = page
-    if (perPage != null) next.perPage = perPage
-    return next
-  }, [page, perPage, debouncedQuery])
+  const filters: VenueFilters = useMemo(
+    () =>
+      cleanFilters({
+        query: debouncedQuery,
+        page,
+        perPage,
+      }) as VenueFilters,
+    [page, perPage, debouncedQuery]
+  )
 
   const { data, isLoading: isInitialLoading, isRefetching, isError, error } = useMyVenues(filters)
   console.log("🚀 ~ VenuesListingPage ~ isError:", isError)
@@ -109,11 +126,15 @@ const VenuesListingPage = () => {
     queryFn: () => isOwnerCalendarConnected(),
   })
 
-
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const handledOAuthRef = useRef("")
+
+  const handleView = (val: string) => {
+    if (!val) return
+    setView(val as "list" | "grid")
+  }
 
   useEffect(() => {
     const success = searchParams.get("success")
@@ -153,19 +174,33 @@ const VenuesListingPage = () => {
 
   const ownerLinked = calendarConnected === true
 
-
   return (
     <div className="space-y-3">
-      <Toolbar
-        isLoading={isInitialLoading || isRefetching}
-        onSearch={(value) => {
-          setPage(1)
-          setQuery(value)
-        }}
-        onViewChange={(value) => {
-          setView(value)
-        }}
-      />
+      <RenderToolbar filterOptions={filterOptions} className="border-b border-border pb-4">
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm text-muted-foreground">View Mode {view}</span>
+          <ToggleGroup
+            type="single"
+            value={view}
+            defaultValue={view}
+            onValueChange={handleView}
+            className="border border-border rounded-lg overflow-hidden gap-0 h-8"
+            disabled={isInitialLoading || isRefetching}
+          >
+            <ToggleGroupItem
+              value="list"
+              className="h-8 w-8 rounded-none border-r border-border data-[state=on]:bg-muted"
+            >
+              <LayoutList className="size-3.5" />
+              <span className="sr-only">List view</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" className="h-8 w-8 rounded-none data-[state=on]:bg-muted">
+              <LayoutGrid className="size-3.5" />
+              <span className="sr-only">Grid view</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </RenderToolbar>
 
       <section className="relative min-h-[520px]">
         {isError ? (
@@ -205,12 +240,12 @@ const VenuesListingPage = () => {
               className={cn(
                 "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-3 md:gap-6",
                 isRefetching ? "opacity-60" : "opacity-100",
-                !isSidebarOpen && "md:grid-cols-4",
+                !isSidebarOpen && "md:grid-cols-3",
                 view === "list" &&
-                "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6",
+                  "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6",
                 view === "list" &&
-                !isSidebarOpen &&
-                "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-3 md:gap-6"
+                  !isSidebarOpen &&
+                  "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6"
               )}
             >
               {venues.map((venue) => (

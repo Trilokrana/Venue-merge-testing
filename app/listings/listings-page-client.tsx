@@ -1,15 +1,7 @@
 "use client"
 
 import { useJsApiLoader } from "@react-google-maps/api"
-import {
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  MapPin,
-  SlidersHorizontal,
-  X,
-} from "lucide-react"
+import { Building2, Filter, MapPin, SlidersHorizontal, X } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import * as React from "react"
 
@@ -17,8 +9,8 @@ import {
   ALL_PLANNING,
   EVENT_TYPE_CHECKBOX_OPTIONS,
   getTimeSlotOptions,
-  type VenueWithRelations,
   VENUE_TYPE_OPTIONS,
+  type VenueWithRelations,
 } from "@/app/listings/data"
 import { VenueFiltersDialog } from "@/components/listings/venue-filters-dialog"
 import { VenueListingCard } from "@/components/listings/venue-listing-card"
@@ -28,6 +20,7 @@ import { VenuesMap } from "@/components/listings/venues-map"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { PaginationWithLinks } from "@/components/ui/pagination-with-links"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
@@ -58,6 +51,7 @@ export function ListingsPageClient({ venues }: Props) {
   const { isLoaded: mapsLoaded, loadError } = useJsApiLoader({
     id: "venue-booking-google",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     libraries: GOOGLE_MAPS_LIBRARIES as any,
   })
 
@@ -92,8 +86,8 @@ export function ListingsPageClient({ venues }: Props) {
     const parsedDate = qpDate ? new Date(qpDate) : undefined
     const nextDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : undefined
 
-    const nextStart = qpStart && TIME_OPTIONS.includes(qpStart) ? qpStart : TIME_OPTIONS[4] ?? ""
-    const nextEnd = qpEnd && TIME_OPTIONS.includes(qpEnd) ? qpEnd : TIME_OPTIONS[14] ?? ""
+    const nextStart = qpStart && TIME_OPTIONS.includes(qpStart) ? qpStart : (TIME_OPTIONS[4] ?? "")
+    const nextEnd = qpEnd && TIME_OPTIONS.includes(qpEnd) ? qpEnd : (TIME_OPTIONS[14] ?? "")
 
     state.hydrateFromUrl({
       planning: qpPlanning,
@@ -195,7 +189,7 @@ export function ListingsPageClient({ venues }: Props) {
 
   return (
     <div className="min-h-screen bg-background text-base">
-      <nav className="sticky top-0 z-40 border-b border-primary/15 bg-gray-50 shadow-sm">
+      <nav className="sticky top-0 z-40 border-b border-primary/15 bg-background shadow-sm">
         <div className="mx-auto flex w-full max-w-7xl justify-center px-4 py-3 md:px-6 lg:px-8">
           <VenueSearchBar
             mapsLoaded={mapsLoaded && !loadError}
@@ -232,9 +226,9 @@ export function ListingsPageClient({ venues }: Props) {
 
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-start gap-x-4 gap-y-0">
-          <p className="w-full min-w-0 sm:flex-1 text-sm text-neutral-600">
-            Showing <span className="font-semibold text-neutral-900">{state.total}</span> {summaryEventLabel} near{" "}
-            <span className="inline-flex items-center gap-1 font-semibold text-neutral-900">
+          <p className="w-full min-w-0 sm:flex-1 text-sm text-muted-foreground">
+            Showing <span className="font-semibold">{state.total}</span> {summaryEventLabel} near{" "}
+            <span className="inline-flex items-center gap-1 font-semibold">
               <MapPin className="size-3.5 shrink-0" />
               <span className="line-clamp-1">{summaryPlace}</span>
             </span>
@@ -247,8 +241,8 @@ export function ListingsPageClient({ venues }: Props) {
               onValueChange={(value) => state.setFilters((prev) => ({ ...prev, venueType: value }))}
             >
               <SelectTrigger className="h-10 min-w-[170px] rounded-md border-primary/25 bg-white px-3">
-                <span className="flex min-w-0 items-center gap-2 text-sm text-neutral-900">
-                  <Building2 className="size-4 shrink-0 text-neutral-400" />
+                <span className="flex min-w-0 items-center gap-2 text-sm">
+                  <Building2 className="size-4 shrink-0 text-muted-foreground" />
                   <SelectValue placeholder="Venue Type" />
                 </span>
               </SelectTrigger>
@@ -263,17 +257,24 @@ export function ListingsPageClient({ venues }: Props) {
 
             <Popover open={eventTypeOpen} onOpenChange={setEventTypeOpen}>
               <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="h-10 min-w-[210px] justify-between rounded-md border-primary/25">
-                  <span className="inline-flex items-center gap-2 text-sm text-neutral-800">
-                    <Filter className="size-4 text-neutral-500" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 min-w-[210px] justify-between rounded-md border-primary/25"
+                >
+                  <span className="inline-flex items-center gap-2 text-sm">
+                    <Filter className="size-4 text-muted-foreground" />
                     {selectedEventCount > 0 ? `${selectedEventCount} event types` : "Event Types"}
                   </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[min(92vw,360px)] rounded-md border border-primary/25 p-3" align="end">
+              <PopoverContent
+                className="w-[min(92vw,360px)] rounded-md border border-primary/25 p-3"
+                align="end"
+              >
                 <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                   {EVENT_TYPE_CHECKBOX_OPTIONS.map((label) => (
-                    <label key={label} className="flex cursor-pointer items-center gap-2 text-sm text-neutral-800">
+                    <label key={label} className="flex cursor-pointer items-center gap-2 text-sm">
                       <Checkbox
                         checked={state.filters.eventTypes.includes(label)}
                         onCheckedChange={() =>
@@ -293,11 +294,16 @@ export function ListingsPageClient({ venues }: Props) {
               </PopoverContent>
             </Popover>
 
-            <Button type="button" variant="outline" onClick={() => setFilterOpen(true)} className="h-10 rounded-md border-primary/25">
-              <SlidersHorizontal className="size-4 text-neutral-700" />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFilterOpen(true)}
+              className="h-10 rounded-md border-primary/25"
+            >
+              <SlidersHorizontal className="size-4 text-muted-foreground" />
               Filters
               {state.activeFilterCount > 0 ? (
-                <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-xs font-semibold text-white">
+                <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
                   {state.activeFilterCount}
                 </span>
               ) : null}
@@ -359,7 +365,7 @@ export function ListingsPageClient({ venues }: Props) {
                 Something went wrong while loading venues. Please try again.
               </div>
             ) : state.total === 0 ? (
-              <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-12 text-center text-sm text-neutral-600">
+              <div className="rounded-xl border border-dashed bg-muted/50 p-12 text-center text-sm text-muted-foreground/80">
                 No venues match these filters. Try another event type or widen the location search.
               </div>
             ) : (
@@ -382,7 +388,7 @@ export function ListingsPageClient({ venues }: Props) {
                     <VenueListingCard
                       venue={venue}
                       className={cn(
-                        "w-full bg-gray-50 transition-colors hover:shadow-md",
+                        "w-full transition-colors hover:shadow-md",
                         state.isPending && "opacity-70"
                       )}
                     />
@@ -396,7 +402,11 @@ export function ListingsPageClient({ venues }: Props) {
             <div className="flex w-full min-w-0 flex-col mb-2 lg:mb-0 lg:mt-0 lg:sticky lg:top-[68px] lg:h-[calc(100vh-80px)] lg:max-h-[calc(100vh-80px)] lg:w-[min(100%,360px)] lg:max-w-[360px] lg:shrink-0">
               <VenuesMap
                 venues={state.filteredVenues}
-                searchCenter={state.appliedPlace ? { lat: state.appliedPlace.lat, lng: state.appliedPlace.lng } : null}
+                searchCenter={
+                  state.appliedPlace
+                    ? { lat: state.appliedPlace.lat, lng: state.appliedPlace.lng }
+                    : null
+                }
                 selectedId={selectedId}
                 onMarkerClick={onMarkerClick}
                 mapsLoaded={mapsLoaded}
@@ -408,55 +418,69 @@ export function ListingsPageClient({ venues }: Props) {
         </div>
 
         {state.pageCount > 1 ? (
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => state.setPage((p) => Math.max(1, p - 1))}
-              disabled={state.page === 1}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
+          // <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          //   <Button
+          //     type="button"
+          //     variant="outline"
+          //     size="icon"
+          //     className="rounded-full"
+          //     onClick={() => state.setPage((p) => Math.max(1, p - 1))}
+          //     disabled={state.page === 1}
+          //     aria-label="Previous page"
+          //   >
+          //     <ChevronLeft className="size-4" />
+          //   </Button>
 
-            {Array.from({ length: state.pageCount }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === state.pageCount || Math.abs(p - state.page) <= 1)
-              .map((p, idx, arr) => {
-                const prev = arr[idx - 1]
-                const showGap = prev != null && p - prev > 1
-                return (
-                  <React.Fragment key={p}>
-                    {showGap ? <span className="px-1 text-neutral-500">...</span> : null}
-                    <button
-                      type="button"
-                      onClick={() => state.setPage(p)}
-                      className={cn(
-                        "size-10 rounded-full text-sm font-semibold transition-colors",
-                        p === state.page
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                      )}
-                      aria-label={`Go to page ${p}`}
-                    >
-                      {p}
-                    </button>
-                  </React.Fragment>
-                )
-              })}
+          //   {Array.from({ length: state.pageCount }, (_, i) => i + 1)
+          //     .filter((p) => p === 1 || p === state.pageCount || Math.abs(p - state.page) <= 1)
+          //     .map((p, idx, arr) => {
+          //       const prev = arr[idx - 1]
+          //       const showGap = prev != null && p - prev > 1
+          //       return (
+          //         <React.Fragment key={p}>
+          //           {showGap ? <span className="px-1 text-neutral-500">...</span> : null}
+          //           <button
+          //             type="button"
+          //             onClick={() => state.setPage(p)}
+          //             className={cn(
+          //               "size-10 rounded-full text-sm font-semibold transition-colors",
+          //               p === state.page
+          //                 ? "bg-primary text-primary-foreground"
+          //                 : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+          //             )}
+          //             aria-label={`Go to page ${p}`}
+          //           >
+          //             {p}
+          //           </button>
+          //         </React.Fragment>
+          //       )
+          //     })}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => state.setPage((p) => Math.min(state.pageCount, p + 1))}
-              disabled={state.page === state.pageCount}
-              aria-label="Next page"
-            >
-              <ChevronRight className="size-4" />
-            </Button>
+          //   <Button
+          //     type="button"
+          //     variant="outline"
+          //     size="icon"
+          //     className="rounded-full"
+          //     onClick={() => state.setPage((p) => Math.min(state.pageCount, p + 1))}
+          //     disabled={state.page === state.pageCount}
+          //     aria-label="Next page"
+          //   >
+          //     <ChevronRight className="size-4" />
+          //   </Button>
+          // </div>
+          <div className="mt-8">
+            <PaginationWithLinks
+              navigationMode="router"
+              totalCount={state.total}
+              page={state.page}
+              pageSize={10}
+              pageSearchParam="page"
+              onPageChange={(page) => state.setPage(page)}
+              // pageSizeSelectOptions={{
+              //   pageSizeSearchParam: "perPage",
+              //   pageSizeOptions: [10, 20, 50, 100],
+              // }}
+            />
           </div>
         ) : null}
       </div>

@@ -29,6 +29,7 @@ export interface PaginationWithLinksProps {
    * @default 'link'
    */
   navigationMode?: "link" | "router"
+  onPageChange?: (page: number) => void
 }
 
 /**
@@ -59,6 +60,7 @@ export function PaginationWithLinks({
   page,
   pageSearchParam,
   navigationMode = "router",
+  onPageChange,
 }: PaginationWithLinksProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -84,10 +86,11 @@ export function PaginationWithLinks({
         const url = buildLink(newPage)
         startTransition(() => {
           router.push(url)
+          onPageChange?.(newPage)
         })
       }
     },
-    [navigationMode, buildLink, router]
+    [navigationMode, buildLink, router, onPageChange]
   )
 
   const navToPageSize = useCallback(
@@ -101,12 +104,14 @@ export function PaginationWithLinks({
       if (navigationMode === "router") {
         startTransition(() => {
           router.push(url)
+          onPageChange?.(1)
         })
       } else {
         router.push(url)
+        onPageChange?.(1)
       }
     },
-    [pageSearchParam, searchParams, pathname, navigationMode, router]
+    [pageSearchParam, searchParams, pathname, navigationMode, router, onPageChange]
   )
 
   const renderPageNumbers = () => {

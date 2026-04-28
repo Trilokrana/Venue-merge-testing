@@ -160,9 +160,29 @@ export async function getBookingsByRenteeId(renteeId: string, filters?: BookingF
   if (filters?.status) {
     query = query.eq("status", filters.status)
   }
+
+  if (filters?.start_at) {
+    const start = new Date(parseInt(filters.start_at))
+    start.setHours(0, 0, 0, 0) // snap to start of day
+
+    const end = new Date(start)
+    end.setDate(end.getDate() + 1) // next day at 00:00:00
+
+    query = query.gte("start_at", start.toISOString()).lt("start_at", end.toISOString())
+  }
+  if (filters?.venue_type) {
+    query = query.eq("venue.venue_type", filters.venue_type)
+  }
+  if (filters?.event_status) {
+    if (filters.event_status === "upcoming") {
+      query = query.gte("start_at", new Date().toISOString())
+    } else if (filters.event_status === "past") {
+      query = query.lt("start_at", new Date().toISOString())
+    }
+  }
   // ---------- Ordering ----------
   query = query
-    .order("created_at", { ascending: false })
+    .order("start_at", { ascending: true })
     // .order("sort_order", { referencedTable: "images", ascending: true })
     .range(from, to)
 

@@ -21,7 +21,7 @@ export function ViewVenueModal({ venue, dialogControl }: ViewVenueModalProps) {
   return (
     <Dialog open={dialogControl?.control.open} onOpenChange={dialogControl?.control.onOpenChange}>
       <DialogContent
-        showCloseButton={false}
+        showCloseButton={true}
         className="
           flex max-h-[95dvh] w-screen flex-col overflow-hidden p-0
           max-w-screen sm:max-w-xl lg:max-w-6xl
@@ -45,7 +45,7 @@ export function ViewVenueModal({ venue, dialogControl }: ViewVenueModalProps) {
         <DialogFooter className="shrink-0 border-t px-6 py-2">
           <Button
             type="button"
-            size="sm"
+            // size="sm"
             variant="outline"
             onClick={(e) => {
               e.stopPropagation()

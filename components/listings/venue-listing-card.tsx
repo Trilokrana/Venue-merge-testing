@@ -6,31 +6,34 @@ import {
   normalizeAddress,
   primaryImageUrl,
 } from "@/app/listings/data"
+import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { VenueWithRelations } from "@/lib/venues/types"
-import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Star, Store, Zap } from "lucide-react"
+import { ListingsWithRelations } from "@/schemas/listings.schema"
+import { format } from "date-fns"
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Info,
+  MapPin,
+  Star,
+  Zap,
+} from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import * as React from "react"
+import { Badge } from "../ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
 
 type Props = {
-  venue: VenueWithRelations
+  venue: ListingsWithRelations
   className?: string
-  /**
-   * True only in owner's /venues page.
-   * Shows "Calendar connected" or "Calendar sync" link.
-   * Must be false/undefined for public /listings cards.
-   */
   isOwnerView?: boolean
   ownerCalendarLinked?: boolean
 }
 
-export function VenueListingCard({
-  venue,
-  className,
-  isOwnerView = false,
-  ownerCalendarLinked = false,
-}: Props) {
+export function VenueListingCard({ venue, className, isOwnerView = false }: Props) {
   const [activeImageIndex, setActiveImageIndex] = React.useState(0)
   const addr = normalizeAddress(venue)
   const sortedImages = React.useMemo(() => {
@@ -74,20 +77,24 @@ export function VenueListingCard({
     setActiveImageIndex((prev) => (prev + 1) % previewImages.length)
   }, [canSlide, previewImages.length])
 
-  const priceLine =
-    venue.hourly_rate != null ? `$${venue.hourly_rate.toLocaleString()} USD/hr` : "Request pricing"
-  const responseLine = "Responds within a few hours"
   const calendarOk = venue.calendar_sync === "connected"
+
+  const dateLabel = venue.created_at ? format(venue.created_at, "EEE, MMM d, yyyy") : null
+  const timeLabel =
+    venue.created_at && venue.created_at
+      ? `${format(venue.created_at, "h:mm a")} – ${format(venue.created_at, "h:mm a")}`
+      : null
 
   return (
     <article
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-sm border p-2 text-base transition-shadow",
+        "group/card flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md",
         className
       )}
     >
       <Link href={`/listings/${venue.id}`} className="group flex h-full flex-col">
-        <div className="relative h-[140px] sm:h-[180px] md:h-[200px] overflow-hidden rounded">
+        {/* Image / carousel */}
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:aspect-[5/3]">
           {previewImages.length > 0 ? (
             <div
               className="flex h-full w-full transition-transform duration-500 ease-out"
@@ -106,18 +113,48 @@ export function VenueListingCard({
               ))}
             </div>
           ) : (
-            <div className="relative h-full w-full overflow-hidden">
+            <div className="relative h-full w-full overflow-hidden bg-muted">
               <Image
                 src="/venue-placeholder.svg"
                 alt="No image available"
                 fill
-                className="bg-neutral-100 object-contain p-6"
+                className="object-contain p-6"
                 sizes="(max-width: 1024px) 100vw, 33vw"
               />
             </div>
           )}
 
-          {canSlide ? (
+          {/* Instant book badge */}
+          {venue.instabook && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    className="absolute left-3 top-3 gap-1 border-primary/30 bg-background/95 px-2 py-1 text-primary shadow-sm backdrop-blur"
+                    variant="outline"
+                  >
+                    <Zap className="size-3 fill-primary text-primary" />
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Instant book</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Rating pill */}
+          {venue.rating != null && (
+            <Badge
+              className="absolute right-3 top-3 gap-1 border-transparent bg-background/95 px-2 py-1 text-foreground shadow-sm backdrop-blur"
+              variant="outline"
+            >
+              <Star className="size-3 fill-amber-400 text-amber-400" />
+              {venue.rating.toFixed(2)}
+            </Badge>
+          )}
+
+          {canSlide && (
             <>
               <button
                 type="button"
@@ -126,7 +163,7 @@ export function VenueListingCard({
                   goPrev()
                 }}
                 aria-label="Previous image"
-                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-xl bg-black/35 p-2 text-white transition-colors hover:bg-black/50"
+                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white opacity-0 shadow transition-all hover:bg-black/70 group-hover:opacity-100"
               >
                 <ChevronLeft className="size-4" />
               </button>
@@ -137,96 +174,108 @@ export function VenueListingCard({
                   goNext()
                 }}
                 aria-label="Next image"
-                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-xl bg-black/35 p-2 text-white transition-colors hover:bg-black/50"
+                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white opacity-0 shadow transition-all hover:bg-black/70 group-hover:opacity-100"
               >
                 <ChevronRight className="size-4" />
               </button>
             </>
-          ) : null}
+          )}
         </div>
 
-        <div className="flex flex-1 flex-col justify-between space-y-1.5 px-2 pt-2.5 pb-1">
-          <h2 className="line-clamp-1 text-sm sm:text-base md:text-[clamp(1.125rem,1vw,1.6rem)] leading-tight font-semibold tracking-tight text-neutral-900">
-            <span className="inline-flex items-center gap-1.5">
-              <Store className="size-[0.9em] md:size-[1em] text-neutral-700" />
-              <span className="line-clamp-1">{title}</span>
-            </span>
-          </h2>
-
-          <div className="flex flex-wrap items-center gap-x-1 sm:gap-x-2 text-xs sm:text-sm md:text-[clamp(0.80rem,0.82vw,1.02rem)] leading-snug text-neutral-900">
-            {venue.rating != null ? (
-              <>
-                <span className="inline-flex items-center gap-1 font-medium text-neutral-900">
-                  <Star className="size-[0.9em] md:size-[0.95em] fill-green-600 text-green-600" />
-                  {venue.rating.toFixed(2)}
-                </span>
-                <span>({Math.max(1, Math.round(venue.rating * 57))})</span>
-              </>
-            ) : (
-              <span className="text-neutral-600">New listing</span>
+        {/* Content */}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          {/* Title + type */}
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="line-clamp-1 text-[17px] font-semibold leading-tight tracking-tight text-foreground">
+              {title}
+            </h2>
+            {venue.venue_type && (
+              <Badge
+                variant="outline"
+                className="shrink-0 border-border bg-muted/60 text-[11px] font-medium text-muted-foreground"
+              >
+                {capitalizeFirstLetter(venue.venue_type)}
+              </Badge>
             )}
-            {venue.instabook ? (
-              <>
-                <span aria-hidden className="hidden sm:inline">
-                  ·
-                </span>
-                <span className="text-neutral-600 inline-flex items-center gap-1">
-                  <Zap className="size-[0.9em] md:size-[1em] fill-amber-500" />
-                  Instant book
-                </span>
-              </>
-            ) : null}
           </div>
 
-          <div className="space-y-0.5 text-xs sm:text-sm md:text-[clamp(0.80rem,0.82vw,1.02rem)] leading-snug text-neutral-600">
-            <span className="block line-clamp-1">{responseLine}</span>
-            <div className="flex items-center gap-x-1 sm:gap-x-2">
-              <MapPin className="hidden sm:block size-[0.9em] md:size-[1em] text-neutral-700" />
-              <span className="line-clamp-1">{subtitle}</span>
+          {/* Location */}
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" />
+            <span className="line-clamp-1">{subtitle || "Location unavailable"}</span>
+          </div>
+
+          {/* Info block */}
+          {(dateLabel || timeLabel) && (
+            <div className="flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-4 py-3">
+              {dateLabel && venue?.description && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="line-clamp-1 font-medium text-foreground">
+                    {venue.description}
+                  </span>
+                </div>
+              )}
+              {timeLabel && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-muted-foreground">{timeLabel}</span>
+                </div>
+              )}
             </div>
-          </div>
-
-          <p className="pt-1.5 text-sm sm:text-base md:text-[clamp(0.95rem,1.02vw,1.75rem)] leading-none font-semibold text-neutral-950">
-            {priceLine}
-          </p>
+          )}
         </div>
       </Link>
-      {isOwnerView && (
-        <div className="flex items-center justify-between border-t border-neutral-200 px-2 py-2 dark:border-neutral-800">
-          {calendarOk ? (
-            <a
-              href={`/api/cronofy/start-connect?venue_id=${venue.id}`}
-              target="_top"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 hover:underline dark:text-green-400"
-              onClick={(e) => e.stopPropagation()}
+
+      {/* Footer (always present — consistent card height) */}
+      {isOwnerView ? (
+        <div className="mt-auto flex items-center justify-between border-t border-border/60 px-4 py-3">
+          <a
+            href={`/api/cronofy/start-connect?venue_id=${venue.id}`}
+            target="_top"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs font-medium transition-colors",
+              calendarOk
+                ? "text-green-600 hover:text-green-700 dark:text-green-400"
+                : "text-primary hover:text-primary/80"
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-5 items-center justify-center rounded-full",
+                calendarOk ? "bg-green-100 dark:bg-green-950" : "bg-primary/10"
+              )}
             >
-              <CalendarDays className="size-3.5" aria-hidden />
-              Calendar connected
-            </a>
-          ) : (
-            <a
-              href={`/api/cronofy/start-connect?venue_id=${venue.id}`}
-              target="_top"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CalendarDays className="size-3.5" aria-hidden />
-              Calendar sync
-            </a>
-          )}
+              <CalendarDays className="size-3" aria-hidden />
+            </span>
+            {calendarOk ? "Connected" : "Sync calendar"}
+          </a>
+
           <Link
             href={`/venues/${venue.id}/calendar`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
             onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
-            Availability Calendar
+            View availability
+            <span aria-hidden>→</span>
           </Link>
+        </div>
+      ) : (
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-border/60 px-4 py-3">
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-semibold tracking-tight text-foreground">
+              ${Number(venue.hourly_rate ?? 10).toLocaleString()}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">USD/hr</span>
+          </div>
+
+          {venue.capacity && (
+            <span className="text-xs text-muted-foreground">Up to {venue.capacity} guests</span>
+          )}
         </div>
       )}
     </article>
   )
-} 
-
-
+}

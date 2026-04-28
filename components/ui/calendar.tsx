@@ -139,6 +139,8 @@ function Calendar({
         },
         ...components,
       }}
+      startMonth={props.startMonth ?? new Date(2020, 0, 1)}
+      endMonth={props.endMonth ?? new Date(2040, 0, 1)}
       {...props}
     />
   )

@@ -11,10 +11,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useModalControlQuery } from "@/hooks/use-modal-control-query"
 import { VenueWithRelations } from "@/lib/venues/types"
 import { Loader2 } from "lucide-react"
+import { parseAsString, useQueryState } from "nuqs"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { VenueCard } from "../cards/VenueCard"
@@ -33,6 +33,7 @@ export function DeleteVenueModal({
   isLoading,
 }: DeleteVenueModalProps) {
   const [value, setValue] = useState<string>("")
+  const [view] = useQueryState("mode", parseAsString.withDefault("grid"))
   useEffect(() => {
     if (!dialogControl?.control.open) {
       setTimeout(() => {
@@ -57,7 +58,8 @@ export function DeleteVenueModal({
             This action cannot be undone. This will permanently delete the venue from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <ScrollArea className="flex max-h-full flex-col overflow-hidden">
+        {/* <ScrollArea className="flex max-h-full flex-col overflow-hidden"> */}
+        <div className="flex-1 overflow-y-auto">
           <div className="mb-4">
             <p className="text-sm">
               Please Type <span className="text-destructive">{venue?.name}</span> to confirm
@@ -70,8 +72,15 @@ export function DeleteVenueModal({
               className="mt-2"
             />
           </div>
-          <VenueCard venue={venue} />
-        </ScrollArea>
+          <div className="p-1">
+            <VenueCard
+              variant={view === "list" ? "list" : ("default" as "list" | "default")}
+              venue={venue}
+              isOwnerView={false}
+            />
+          </div>
+        </div>
+        {/* </ScrollArea> */}
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>

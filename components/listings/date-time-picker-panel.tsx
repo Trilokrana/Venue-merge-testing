@@ -1,8 +1,8 @@
 "use client"
 
-import * as React from "react"
 import { format } from "date-fns"
 import { Clock } from "lucide-react"
+import * as React from "react"
 
 import { getTimeSlotOptions } from "@/app/listings/data"
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar"
@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { DayPickerProps } from "react-day-picker"
+import { Button } from "../ui/button"
 
 const TIME_OPTIONS = getTimeSlotOptions()
 
@@ -26,6 +28,9 @@ type Props = {
   onEndTimeChange: (t: string) => void
   /** Slot string → display label for busy slots (e.g. "Maintenance", "Booked") */
   busySlots?: Map<string, string>
+  calendarProps?: Omit<DayPickerProps, "mode" | "selected" | "onSelect"> & {
+    buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  }
 }
 
 export function DateTimePickerPanel({
@@ -36,6 +41,7 @@ export function DateTimePickerPanel({
   onStartTimeChange,
   onEndTimeChange,
   busySlots,
+  calendarProps = {},
 }: Props) {
   const durationHours = React.useMemo(() => {
     const si = TIME_OPTIONS.indexOf(startTime)
@@ -47,7 +53,7 @@ export function DateTimePickerPanel({
 
   return (
     <div className="flex flex-col gap-0 md:flex-row">
-      <div className="border-neutral-200 p-3 md:border-r md:pr-4">
+      <div className="p-3 md:pr-4">
         <Calendar
           mode="single"
           selected={date}
@@ -61,29 +67,33 @@ export function DateTimePickerPanel({
               />
             ),
           }}
+          captionLayout="dropdown"
+          {...calendarProps}
         />
       </div>
-      <div className="flex min-w-[260px] flex-col gap-3 border-t border-neutral-200 p-4 md:border-t-0">
+      <div className="flex min-w-[260px] flex-col gap-3 border-t p-4 md:border-t-0">
         {durationHours ? (
           <p className="text-sm font-medium text-primary">{durationHours} hours selected</p>
         ) : (
-          <p className="text-sm text-neutral-500">Pick start and end time</p>
+          <p className="text-sm text-muted-foreground">Pick start and end time</p>
         )}
         <div className="space-y-2">
-          <Label className="text-neutral-600">Start time</Label>
+          <Label className="">Start time</Label>
           <Select value={startTime} onValueChange={onStartTimeChange}>
-            <SelectTrigger className="h-12 min-h-12 w-full min-w-[248px] justify-start gap-0 rounded-lg border-primary/25 bg-white py-2.5 focus-visible:border-primary focus-visible:ring-primary/20 [&>svg]:ml-auto">
-              <Clock className="mr-2 size-4 shrink-0 text-neutral-400" />
-              <SelectValue placeholder="Start" />
+            <SelectTrigger className="h-11 w-full gap-2 border-input bg-background px-3 text-sm font-medium transition-colors hover:border-ring focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 data-[state=open]:border-primary">
+              <Clock className="size-4 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="Start time" />
             </SelectTrigger>
             <SelectContent className="rounded-lg border-primary/25">
               {TIME_OPTIONS.map((t) => {
                 const busyLabel = busySlots?.get(t)
                 return (
                   <SelectItem key={t} value={t} disabled={!!busyLabel}>
-                    <span className={busyLabel ? "text-neutral-400 line-through" : undefined}>{t}</span>
+                    <span className={busyLabel ? "text-muted-foreground line-through" : undefined}>
+                      {t}
+                    </span>
                     {busyLabel ? (
-                      <span className="ml-2 text-xs text-neutral-400">{busyLabel}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{busyLabel}</span>
                     ) : null}
                   </SelectItem>
                 )
@@ -92,20 +102,22 @@ export function DateTimePickerPanel({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-neutral-600">End time</Label>
+          <Label className="">End time</Label>
           <Select value={endTime} onValueChange={onEndTimeChange}>
-            <SelectTrigger className="h-12 min-h-12 w-full min-w-[248px] justify-start gap-0 rounded-lg border-primary/25 bg-white py-2.5 focus-visible:border-primary focus-visible:ring-primary/20 [&>svg]:ml-auto">
-              <Clock className="mr-2 size-4 shrink-0 text-neutral-400" />
-              <SelectValue placeholder="End" />
+            <SelectTrigger className="h-11 w-full gap-2 border-input bg-background px-3 text-sm font-medium transition-colors hover:border-ring focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 data-[state=open]:border-primary">
+              <Clock className="size-4 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="End time" />
             </SelectTrigger>
-            <SelectContent className="rounded-lg border-primary/25">
+            <SelectContent className="rounded-lg">
               {TIME_OPTIONS.map((t) => {
                 const busyLabel = busySlots?.get(t)
                 return (
                   <SelectItem key={`e-${t}`} value={t} disabled={!!busyLabel}>
-                    <span className={busyLabel ? "text-neutral-400 line-through" : undefined}>{t}</span>
+                    <span className={busyLabel ? "text-muted-foreground line-through" : undefined}>
+                      {t}
+                    </span>
                     {busyLabel ? (
-                      <span className="ml-2 text-xs text-neutral-400">{busyLabel}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{busyLabel}</span>
                     ) : null}
                   </SelectItem>
                 )
@@ -113,7 +125,7 @@ export function DateTimePickerPanel({
             </SelectContent>
           </Select>
         </div>
-        <p className="text-sm font-semibold text-neutral-900">
+        <p className="text-sm font-semibold">
           {date ? format(date, "MMMM d, yyyy") : "Select a date"}
         </p>
       </div>

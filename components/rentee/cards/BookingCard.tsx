@@ -1,6 +1,8 @@
 import { formatLocationLine } from "@/app/listings/data"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { BookingWithRelations } from "@/lib/bookings/types"
+import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { VenueAddress, VenueImage } from "@/lib/venues/types"
 import { format } from "date-fns"
@@ -79,7 +81,7 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
         "relative overflow-hidden bg-muted",
         listView
           ? "aspect-square w-40 shrink-0 sm:w-52 md:w-60 md:aspect-auto md:h-full"
-          : "aspect-[16/10] w-full"
+          : "aspect-16/10 w-full"
       )}
     >
       {featuredImage ? (
@@ -95,12 +97,12 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
           }
         />
       ) : (
-        <div className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-muted/40">
+        <div className="flex h-full items-center justify-center bg-linear-to-br from-muted to-muted/40">
           <MapPin className="h-10 w-10 text-muted-foreground/40" />
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-primary/20 via-transparent to-transparent" />
 
       {/* Status — top right (only show on image in grid view; in list view we move it to the body) */}
       <div className="absolute top-3 right-3">{StatusBadge}</div>
@@ -156,7 +158,7 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
             In list view we keep everything on a single horizontal row at the bottom
             so the layout reads left-to-right. In grid view we stack as before. */}
         {listView ? (
-          <div className="mt-auto flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-border/60 pt-4">
+          <div className="relative  mt-auto flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-border/60 pt-4">
             {/* Schedule */}
             {(dateLabel || timeLabel) && (
               <div className="flex flex-col gap-1">
@@ -172,6 +174,9 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
                     <span className="text-muted-foreground">{timeLabel}</span>
                   </div>
                 )}
+                <Badge className="absolute -top-3 right-0 bg-background" variant="outline">
+                  {capitalizeFirstLetter(booking.venue.venue_type ?? "")}
+                </Badge>
               </div>
             )}
 
@@ -191,7 +196,7 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
           <>
             {/* Date + Time row (grid view) */}
             {(dateLabel || timeLabel) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+              <div className="relative flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg rounded-tr-none border border-border/60 bg-muted/40 px-3 py-2.5">
                 {dateLabel && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="size-3.5 text-muted-foreground" />
@@ -204,6 +209,9 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
                     <span className="text-muted-foreground">{timeLabel}</span>
                   </div>
                 )}
+                <Badge className="absolute -top-3 right-0 bg-background" variant="outline">
+                  {capitalizeFirstLetter(booking.venue.venue_type ?? "")}
+                </Badge>
               </div>
             )}
 

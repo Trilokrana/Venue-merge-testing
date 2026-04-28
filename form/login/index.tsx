@@ -30,9 +30,7 @@ function postLoginPath(searchParams: ReturnType<typeof useSearchParams>) {
   return "/dashboard"
 }
 
-
-
-const LoginForm = ({ }: LoginFormProps) => {
+const LoginForm = ({}: LoginFormProps) => {
   const supabase = getSupabaseBrowserClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -82,7 +80,7 @@ const LoginForm = ({ }: LoginFormProps) => {
         }
       }
       // ** LOGIN SUCCESS End Here **
-      console.log("Login successful for:", data.email || user?.email)
+
       toast.success("Logged in successfully")
       router.replace(postLoginPath(searchParams))
       router.refresh()
@@ -115,8 +113,7 @@ const LoginForm = ({ }: LoginFormProps) => {
       toast.error(decodeURIComponent(error))
       router.replace("/login", { scroll: false })
     }
-  }, [searchParams, router]);
-
+  }, [searchParams, router])
 
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -168,7 +165,7 @@ const LoginForm = ({ }: LoginFormProps) => {
                   className="w-10 h-10 rounded-md"
                 />
                 <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground text-xs">Login to your Accounts</p>
+                <p className="text-muted-foreground text-xs">Login to your Account</p>
               </div>
 
               <FormField

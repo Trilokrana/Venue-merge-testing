@@ -1,35 +1,116 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function VenueDetailLoading() {
+export default function VenueDetailLoading({showHeader = true}: {showHeader?: boolean}) {
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-950">
-      <div className="border-b border-neutral-200 bg-white">
-        <div className="w-full px-4 py-3 md:px-6 lg:px-8">
-          <Skeleton className="h-9 w-36" />
+    <div className="space-y-5 sm:space-y-6 p-4 sm:p-6 max-w-6xl mx-auto">
+      {showHeader && <div className="pb-4 border-b flex justify-between items-center w-full">
+        <Skeleton className="h-9 rounded-2xl w-20" />
+        <div className=" grid grid-cols-4 gap-2 w-[40%] sm:w-[60%]">
+          <Skeleton className="h-9 w-full rounded-2xl sm:block hidden" />
+          <Skeleton className="h-9 w-full rounded-2xl sm:block hidden" />
+          <Skeleton className="h-9 w-full rounded-2xl sm:block hidden" />
+          <Skeleton className="h-9 w-full rounded-2xl sm:block hidden" />
+          <Skeleton className="h-9 w-full col-span-4 rounded-2xl sm:hidden block" />
+        </div>
+      </div>}
+
+      {/* Hero Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Left: Big Image */}
+        <Skeleton className="h-[200px] sm:h-[260px] w-full rounded-2xl" />
+
+        {/* Right: Image Grid */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Skeleton className="h-[90px] sm:h-[120px] rounded-xl" />
+          <Skeleton className="h-[90px] sm:h-[120px] rounded-xl" />
+          <Skeleton className="col-span-2 h-[90px] sm:h-[120px] rounded-xl" />
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 pt-4 md:px-6 md:pt-6">
-        <Skeleton className="h-[320px] w-full rounded-xl md:h-[420px]" />
-
-        <div className="mt-4 space-y-3">
-          <div className="flex gap-2">
-            <Skeleton className="h-8 w-28 rounded-full" />
-            <Skeleton className="h-8 w-28 rounded-full" />
-          </div>
-          <Skeleton className="h-9 w-2/3" />
-          <Skeleton className="h-5 w-1/2" />
+      {/* Title + Info */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-24 rounded-full" />
         </div>
 
-        <div className="mt-10 flex flex-col-reverse gap-8 lg:grid lg:grid-cols-[1fr_380px] lg:items-start lg:gap-10">
-          <div className="space-y-8 min-w-0">
-            <Skeleton className="h-52 w-full rounded-2xl" />
-            <Skeleton className="h-44 w-full rounded-2xl" />
-            <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-6 sm:h-7 w-3/4 sm:w-64" />
+        <Skeleton className="h-4 w-full sm:w-96" />
+
+        {/* Stats Row */}
+        <div className="flex flex-wrap gap-3 sm:gap-6 pt-2">
+          <Skeleton className="h-10 w-[45%] sm:w-28 rounded-lg" />
+          <Skeleton className="h-10 w-[45%] sm:w-28 rounded-lg" />
+          <Skeleton className="h-10 w-[45%] sm:w-28 rounded-lg" />
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Left Content */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          {/* About */}
+          <div className="rounded-2xl border p-3 sm:p-4 space-y-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
           </div>
-          <div className="space-y-4">
-            <Skeleton className="h-96 w-full rounded-2xl" />
-            <Skeleton className="h-12 w-full rounded-2xl" />
+
+          {/* Amenities */}
+          <div className="rounded-2xl border p-3 sm:p-4 space-y-3">
+            <Skeleton className="h-5 w-32" />
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-6 w-20 sm:w-24 rounded-full" />
+              ))}
+            </div>
+          </div>
+
+          {/* Hours + Cancellation */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="rounded-2xl border p-3 sm:p-4 space-y-2">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+
+            <div className="rounded-2xl border p-3 sm:p-4 space-y-2">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+
+          {/* Social */}
+          <div className="rounded-2xl border p-3 sm:p-4 space-y-3">
+            <Skeleton className="h-5 w-32" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-3/4 sm:w-48" />
+            ))}
+          </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Manage Card */}
+          <div className="rounded-2xl border p-3 sm:p-4 space-y-4">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+
+          {/* Host Card */}
+          <div className="rounded-2xl border p-3 sm:p-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-12 rounded-lg" />
+              <Skeleton className="h-12 rounded-lg" />
+            </div>
           </div>
         </div>
       </div>

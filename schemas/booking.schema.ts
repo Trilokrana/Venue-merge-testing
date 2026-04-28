@@ -34,6 +34,8 @@ export const bookingFiltersSchema = z.object({
   created_at: z.string().optional(),
   start_at: z.string().optional(),
   end_at: z.string().optional(),
+  venue_type: z.string().optional(),
+  event_status: z.string().optional(),
 })
 
 export type BookingFilters = z.infer<typeof bookingFiltersSchema> & {

@@ -1,6 +1,6 @@
 "use client"
 
-import { format } from "date-fns"
+import { format, isBefore, startOfDay } from "date-fns"
 import { CalendarDays, ChevronDown, Info, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
@@ -160,51 +160,50 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
   return (
     <Card
       className={cn(
-        "overflow-hidden rounded-2xl border-neutral-200 shadow-xl ring-1 ring-black/5",
+        "overflow-hidden p-0 border-0 ring-0 rounded-bl-none shadow-none data-[size=sm]:gap-0 data-[size=sm]:py-0 data-[size=sm]:px-0",
         className
       )}
+      size="sm"
     >
-      <CardContent className="space-y-4 px-6 py-2">
+      <CardContent className="space-y-4 group-data-[size=sm]/card:px-0">
         <div className="flex min-h-14 flex-wrap items-start justify-between gap-2">
           <div>
             {displayedHourlyRate != null ? (
               <>
-                <p className="text-2xl font-semibold tabular-nums text-neutral-900">
+                <p className="text-2xl font-semibold tabular-nums ">
                   ${Math.round(displayedHourlyRate).toLocaleString()}{" "}
-                  <span className="text-base font-medium text-neutral-500">USD/hr</span>
+                  <span className="text-base font-medium text-muted-foreground">USD/hr</span>
                 </p>
                 {minHours != null ? (
-                  <p className="text-sm text-neutral-500">{minHours} hr. minimum</p>
+                  <p className="text-sm text-muted-foreground">{minHours} hr. minimum</p>
                 ) : null}
               </>
             ) : (
-              <p className="text-xl font-semibold text-neutral-900">Request a quote</p>
+              <p className="text-xl font-semibold ">Request a quote</p>
             )}
           </div>
         </div>
 
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
-            <button
+            <Button
               type="button"
-              className={cn(
-                "flex w-full min-h-16 items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-white px-5 py-3 text-left text-sm transition-colors hover:border-primary/50",
-                pickerOpen && "border-primary ring-2 ring-primary/20"
-              )}
+              // variant={"de"}
+              className="w-full h-full py-2"
             >
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <CalendarDays className="size-5 shrink-0 text-neutral-400" />
-                <div className="min-w-0">
-                  <p className="font-semibold text-neutral-900">{dateLine}</p>
-                  <p className="text-xs text-neutral-500">{timeLine}</p>
+                <CalendarDays className="size-5 shrink-0" />
+                <div className="min-w-0 flex flex-col items-start">
+                  <p className="font-semibold ">{dateLine}</p>
+                  <p className="text-xs">{timeLine}</p>
                 </div>
               </div>
-              <ChevronDown className="size-4 shrink-0 text-neutral-400" />
-            </button>
+              <ChevronDown className="size-4 shrink-0" />
+            </Button>
           </PopoverTrigger>
           <PopoverContent
             className="w-auto max-w-[calc(100vw-2rem)] rounded-2xl border border-primary/25 p-0 shadow-lg"
-            align="start"
+            align="center"
           >
             <div>
               <DateTimePickerPanel
@@ -215,12 +214,15 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                 onStartTimeChange={setStartTime}
                 onEndTimeChange={setEndTime}
                 busySlots={busySlots}
+                calendarProps={{
+                  disabled: (date) => isBefore(date, startOfDay(new Date())),
+                }}
               />
               <div className="flex justify-end gap-2 border-t border-neutral-200 p-3">
                 <Button
                   type="button"
                   variant="ghost"
-                  className="rounded-xl"
+                  // className="rounded-xl"
                   onClick={() => {
                     setDate(undefined)
                     setStartTime("")
@@ -252,14 +254,14 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
           <div className="-mt-2 flex items-center justify-between px-1 text-sm">
             <button
               type="button"
-              className="text-neutral-700 underline decoration-neutral-400 underline-offset-2 hover:text-neutral-900"
+              className="text-muted-foreground  underline underline-offset-2 hover:text-foreground"
               onClick={() => setPickerOpen(true)}
             >
               Add a day
             </button>
             <button
               type="button"
-              className="text-neutral-700 underline decoration-neutral-400 underline-offset-2 hover:text-neutral-900"
+              className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
               onClick={() => {
                 setDate(undefined)
                 setStartTime("")
@@ -272,11 +274,11 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
         ) : null}
 
         <div className="space-y-2">
-          <Label className="text-base font-semibold text-neutral-700">Attendees</Label>
+          <Label className="text-base font-semibold text-muted-foreground">Attendees</Label>
           <Select value={guests} onValueChange={setGuests}>
-            <SelectTrigger className="h-12 min-h-12 w-full justify-start gap-0 rounded-xl border-primary/25 bg-white py-2.5 text-left focus-visible:border-primary focus-visible:ring-primary/20 [&>svg]:ml-auto *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-start">
-              <Users className="mr-2 size-4 shrink-0 text-neutral-400" />
-              <SelectValue placeholder="Select attendees" />
+            <SelectTrigger className="w-full justify-start gap-0 rounded-sm py-2.5 text-left focus-visible:border-primary focus-visible:ring-primary/20 [&>svg]:ml-auto *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-start">
+              <Users className="mr-2 size-4 shrink-0 text-muted-foreground/90" />
+              <SelectValue placeholder="Select attendees" className="text-muted-foreground" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-primary/25 **:data-[slot=select-item]:pl-4 **:data-[slot=select-item]:pr-10">
               {GUEST_BUCKETS.map((b) => (
@@ -284,7 +286,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                   <span className="inline-flex w-full items-center">
                     <span className="min-w-0 flex-1 truncate text-left">{b.label}</span>
                     {baseRate > 0 ? (
-                      <span className="ml-6 min-w-35 text-right tabular-nums whitespace-nowrap text-neutral-600">
+                      <span className="ml-6 min-w-35 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                         ${Math.round(baseRate * b.multiplier).toLocaleString()} USD/hr
                       </span>
                     ) : null}
@@ -294,7 +296,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
             </SelectContent>
           </Select>
           {capacity != null ? (
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Venue capacity: up to {capacity.toLocaleString()} guests
             </p>
           ) : null}
@@ -302,9 +304,9 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
 
         {readyToBook ? (
           <>
-            <div className="rounded-2xl bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-600">
+            <div className="rounded-2xl border p-3 text-xs leading-relaxed text-muted-foreground">
               <div className="flex gap-2">
-                <Info className="mt-0.5 size-4 shrink-0 text-neutral-400" />
+                <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground/90" />
                 <span>
                   Reservations are not final until the host confirms. Free cancellation within 24
                   hours of booking request where applicable.
@@ -330,7 +332,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
               {displayedHourlyRate != null ? "Reserve" : "Request availability"}
             </Button>
 
-            <p className="text-center text-xs text-neutral-500">
+            <p className="text-center text-xs text-muted-foreground">
               Cancel for free within 24 hours · High acceptance rate
             </p>
 
@@ -338,25 +340,25 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
               <>
                 <Separator />
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-4 text-neutral-700">
+                  <div className="flex justify-between gap-4 text-muted-foreground">
                     <span>
                       ${dynamicHourlyRate.toFixed(2)} USD × {effectiveHours.toFixed(1)} hours
                     </span>
                     <span className="tabular-nums font-medium">${subtotal.toFixed(2)} USD</span>
                   </div>
-                  <div className="flex justify-between gap-4 text-neutral-600">
+                  <div className="flex justify-between gap-4 text-muted-foreground">
                     <span>Attendees</span>
                     <span className="tabular-nums">{selectedGuestLabel}</span>
                   </div>
-                  <div className="flex justify-between gap-4 text-neutral-600">
+                  <div className="flex justify-between gap-4 text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       Processing fee
-                      <Info className="size-3.5 text-neutral-400" />
+                      <Info className="size-3.5 text-muted-foreground/90" />
                     </span>
                     <span className="tabular-nums">${processing.toFixed(2)} USD</span>
                   </div>
                   <Separator className="my-2" />
-                  <div className="flex justify-between gap-4 font-semibold text-neutral-900">
+                  <div className="flex justify-between gap-4 font-semibold ">
                     <span>Total</span>
                     <span className="tabular-nums">${total.toFixed(2)} USD</span>
                   </div>

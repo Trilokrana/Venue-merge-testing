@@ -1,13 +1,13 @@
 "use client"
 
 import { Autocomplete } from "@react-google-maps/api"
-import { format } from "date-fns"
-import { MapPin, Search, X } from "lucide-react"
+import { format, isBefore, startOfDay } from "date-fns"
+import { Search, X } from "lucide-react"
 import * as React from "react"
 
 import { PLANNING_OPTIONS } from "@/app/listings/data"
 import { DateTimePickerPanel } from "@/components/listings/date-time-picker-panel"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -18,12 +18,15 @@ import {
 } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { VariantProps } from "class-variance-authority"
 
 export type SearchPlace = {
   lat: number
   lng: number
   label: string
 }
+
+type Size = "sm" | "md" | "lg"
 
 type Props = {
   mapsLoaded: boolean
@@ -39,7 +42,55 @@ type Props = {
   onEndTimeChange: (t: string) => void
   onSearch: () => void
   className?: string
-  size?: "sm" | "md" | "lg"
+  size?: Size
+  searchButtonProps?: React.ComponentProps<"button"> &
+    VariantProps<typeof buttonVariants> & {
+      asChild?: boolean
+    }
+}
+
+const SIZE_TOKENS: Record<
+  Size,
+  {
+    container: string
+    segment: string
+    label: string
+    value: string
+    button: string
+    clearIcon: string
+    searchIcon: string
+  }
+> = {
+  sm: {
+    container: "rounded-full p-1 sm:rounded-xl sm:p-1",
+    segment: "rounded-full px-3 py-1.5 sm:rounded-lg",
+    label: "text-[11px]",
+    value: "text-[13px]",
+    button:
+      "h-8 px-3 text-xs gap-1.5 rounded-full sm:h-auto sm:px-4 sm:py-1 sm:rounded-lg flex items-center justify-center",
+    clearIcon: "size-3",
+    searchIcon: "size-3.5",
+  },
+  md: {
+    container: "rounded-full p-1 sm:rounded-2xl sm:p-1.5",
+    segment: "rounded-full px-3 py-1.5 sm:rounded-xl sm:px-5 sm:py-2.5",
+    label: "text-[13px]",
+    value: "text-[14px] sm:text-[15px]",
+    button:
+      "h-9 px-4 text-sm gap-1.5 rounded-full sm:h-auto sm:px-6 sm:py-3 sm:text-[15px] sm:gap-2 sm:rounded-xl flex items-center justify-center",
+    clearIcon: "size-3.5",
+    searchIcon: "size-4",
+  },
+  lg: {
+    container: "rounded-full p-1 sm:rounded-3xl sm:p-2",
+    segment: "rounded-full px-3 py-1.5 sm:rounded-2xl sm:px-6 sm:py-3.5",
+    label: "text-sm",
+    value: "text-[14px] sm:text-base",
+    button:
+      "h-10 px-4 text-sm gap-2 rounded-full sm:h-auto sm:px-8 sm:py-4 sm:text-base sm:rounded-2xl flex items-center justify-center",
+    clearIcon: "size-4",
+    searchIcon: "size-4 sm:size-5",
+  },
 }
 
 export function VenueSearchBar({
@@ -57,11 +108,14 @@ export function VenueSearchBar({
   onSearch,
   className,
   size = "sm",
+  searchButtonProps,
 }: Props) {
   const acRef = React.useRef<google.maps.places.Autocomplete | null>(null)
   const [planOpen, setPlanOpen] = React.useState(false)
   const [whenOpen, setWhenOpen] = React.useState(false)
   const [whereFocused, setWhereFocused] = React.useState(false)
+
+  const t = SIZE_TOKENS[size]
 
   const onPlaceChanged = React.useCallback(() => {
     const ac = acRef.current
@@ -80,225 +134,207 @@ export function VenueSearchBar({
         ? format(date, "MMM d")
         : "Pick date"
 
+  // Segment composition
+  const segmentBase = cn(
+    "relative flex min-w-0 flex-1 flex-col justify-center text-left transition-all",
+    t.segment
+  )
+  const segmentIdle = "bg-transparent hover:bg-muted/50"
+  const segmentActive = "bg-background ring-1 ring-primary shadow-sm z-10"
+
+  // On mobile, labels are hidden — only the value/placeholder is shown inline.
+  const labelClass = cn("hidden sm:block font-medium text-muted-foreground", t.label)
+  const valueClass = cn("truncate pr-5 font-semibold text-foreground sm:mt-0.5 sm:pr-6", t.value)
+  const placeholderClass = cn(
+    "truncate pr-5 font-normal text-muted-foreground sm:mt-0.5 sm:pr-6",
+    t.value
+  )
+  const clearBtnClass =
+    "absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:p-1"
+
   return (
     <div className={cn("relative w-full", className)}>
-      
-        <div className={cn(
-          "flex flex-col gap-0 bg-white lg:flex-row lg:items-stretch cursor-pointer hover:shadow-md transition-shadow",
-          size === "md" ? "rounded-[14px] p-1.5 lg:pr-2 lg:pl-1 lg:py-1.5 border border-primary/10 shadow-sm" : "rounded-lg border border-primary/25"
-        )}>
-          <Popover open={planOpen} onOpenChange={setPlanOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "relative flex min-w-0 flex-1 flex-col justify-center text-left transition-colors",
-                  size === "lg" ? "min-h-12 px-4 py-2 lg:min-h-14 lg:px-5 lg:py-3 rounded-none lg:rounded-l-lg" : 
-                  size === "md" ? "min-h-11 px-4 py-2 lg:min-h-12 lg:px-5 lg:py-2.5 rounded-none lg:rounded-l-[10px]" :
-                  "min-h-9 px-3 py-1.5 lg:min-h-9 lg:px-3 lg:py-1.5 rounded-none lg:rounded-l-lg",
-                  planOpen ? "bg-white ring-2 ring-primary ring-inset rounded-lg z-10" : "bg-white hover:bg-neutral-50 z-0"
-                )}
-              >
-                <span className={cn("font-medium text-neutral-600",
-                  size === "lg" ? "text-sm leading-5" : 
-                  size === "md" ? "text-[13px] leading-4 lg:mb-0.5" : 
-                  "text-[12px] lg:text-[11px] leading-4"
-                )}>What are you planning?</span>
-                <div className={cn("relative mt-0.5 block w-full", size === "lg" ? "min-h-6" : size === "md" ? "min-h-5" : "min-h-5")}>
-                  <span className={cn("block truncate font-semibold text-neutral-900 pr-6", 
-                    size === "lg" ? "text-base leading-6" : 
-                    size === "md" ? "text-[15px] leading-5" : 
-                    "text-[14px] lg:text-[13px] leading-5"
-                  )}>{planning || "Anything"}</span>
-                  {planning && (
-                    <button
-                      type="button"
-                      className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-neutral-400 hover:text-neutral-900"
-                      aria-label="Clear planning"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        onPlanningChange("")
-                      }}
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </div>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[min(100vw-2rem,380px)] rounded-xl border border-primary/25 p-0 shadow-lg" align="start">
-              <Command className="rounded-xl">
-                <CommandInput placeholder="Search activities..." />
-                <CommandList>
-                  <CommandEmpty>No match.</CommandEmpty>
-                  <CommandGroup heading="Popular">
-                    {PLANNING_OPTIONS.slice(0, 8).map((opt) => (
-                      <CommandItem
-                        key={opt}
-                        value={opt}
-                        onSelect={() => {
-                          onPlanningChange(opt)
-                          setPlanOpen(false)
-                        }}
-                      >
-                        {opt}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                  <CommandGroup heading="All">
-                    {PLANNING_OPTIONS.slice(8).map((opt) => (
-                      <CommandItem
-                        key={opt}
-                        value={opt}
-                        onSelect={() => {
-                          onPlanningChange(opt)
-                          setPlanOpen(false)
-                        }}
-                      >
-                        {opt}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <div className={cn("hidden w-px shrink-0 bg-neutral-200/90 lg:block", size === "md" ? "h-10 self-center" : "self-stretch")} />
-
-          <div
-            className={cn(
-              "relative min-w-0 flex-1 transition-colors",
-              size === "lg" ? "min-h-12 px-4 py-2 lg:min-h-14 lg:px-5 lg:py-3" : 
-              size === "md" ? "min-h-11 px-4 py-2 lg:min-h-12 lg:px-5 lg:py-2.5" : 
-              "min-h-9 px-3 py-1.5 lg:min-h-9 lg:px-3 lg:py-1.5",
-              whereFocused ? "bg-white ring-2 ring-primary ring-inset rounded-lg z-10" : "bg-white hover:bg-neutral-50 z-0"
-            )}
-          >
-            <span className={cn("font-medium text-neutral-600",
-              size === "lg" ? "text-sm leading-5" : 
-              size === "md" ? "text-[13px] leading-4 lg:mb-0.5" : 
-              "text-[12px] lg:text-[11px] leading-4"
-            )}>Where?</span>
-            {mapsLoaded ? (
-              <div className={cn("relative mt-0.5 block", size === "lg" ? "min-h-6" : size === "md" ? "min-h-5" : "min-h-5")}>
-                <MapPin className={cn("pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 text-neutral-400", size === "lg" ? "size-4" : size === "md" ? "size-4" : "size-3.5")} />
-                <Autocomplete
-                  onLoad={(ac) => {
-                    acRef.current = ac
-                  }}
-                  onPlaceChanged={onPlaceChanged}
-                  options={{
-                    fields: ["formatted_address", "geometry", "name", "address_components"],
-                  }}
-                >
-                  <input
-                    key={place?.label ?? "no-place"}
-                    className={cn(
-                      "block w-full border-0 bg-transparent outline-none placeholder:text-neutral-400 font-semibold text-neutral-900 pr-8",
-                      size === "lg" ? "py-1 pl-8 text-base leading-6" : 
-                      size === "md" ? "py-0 pl-8 text-[15px] leading-5" : 
-                      "py-0.5 pl-9 text-[14px] lg:text-[13px] leading-5"
-                    )}
-                    placeholder="Los Angeles, CA, USA"
-                    defaultValue={place?.label ?? ""}
-                    onFocus={() => setWhereFocused(true)}
-                    onBlur={() => setWhereFocused(false)}
-                  />
-                </Autocomplete>
-                {place ? (
+      <div
+        className={cn(
+          "flex flex-row items-stretch gap-0 border bg-background shadow-sm transition-shadow hover:shadow-md",
+          t.container
+        )}
+      >
+        {/* WHAT */}
+        <Popover open={planOpen} onOpenChange={setPlanOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(segmentBase, planOpen ? segmentActive : segmentIdle)}
+            >
+              <span className={labelClass}>What are you planning?</span>
+              <div className="relative">
+                <span className={planning ? valueClass : placeholderClass}>
+                  {planning || "All"}
+                </span>
+                {planning && (
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded p-1 text-neutral-400 hover:text-neutral-900"
-                    aria-label="Clear location"
-                    onClick={() => onPlaceChange(null)}
+                    className={clearBtnClass}
+                    aria-label="Clear planning"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onPlanningChange("")
+                    }}
                   >
-                    <X className="size-4" />
+                    <X className={t.clearIcon} />
                   </button>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mt-1 pl-0.5 text-sm text-neutral-400">Loading places...</p>
-            )}
-          </div>
-
-          <div className={cn("hidden w-px shrink-0 bg-neutral-200/90 lg:block", size === "md" ? "h-10 self-center" : "self-stretch")} />
-
-          <Popover open={whenOpen} onOpenChange={setWhenOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "relative flex min-w-0 flex-1 flex-col justify-center text-left transition-colors",
-                  size === "lg" ? "min-h-12 px-4 py-2 lg:min-h-14 lg:px-5 lg:py-3 rounded-none lg:rounded-r-none" : 
-                  size === "md" ? "min-h-11 px-4 py-2 lg:min-h-12 lg:px-5 lg:py-2.5 rounded-none lg:mr-2" : 
-                  "min-h-9 px-3 py-1.5 lg:min-h-9 lg:px-3 lg:py-1.5 rounded-none lg:rounded-r-none",
-                  whenOpen ? "bg-white ring-2 ring-primary ring-inset rounded-lg z-10" : "bg-white hover:bg-neutral-50 z-0"
                 )}
-              >
-                <span className={cn("font-medium text-neutral-600",
-                  size === "lg" ? "text-sm leading-5" : 
-                  size === "md" ? "text-[13px] leading-4 lg:mb-0.5" : 
-                  "text-[12px] lg:text-[11px] leading-4"
-                )}>When?</span>
-                <div className={cn("relative mt-0.5 block w-full", size === "lg" ? "min-h-6" : size === "md" ? "min-h-5" : "min-h-5")}>
-                  <span className={cn("block truncate font-semibold text-neutral-900 pr-6",
-                    size === "lg" ? "text-base leading-6" : 
-                    size === "md" ? "text-[15px] leading-5" : 
-                    "text-[14px] lg:text-[13px] leading-5"
-                  )}>{whenSummary}</span>
-                  {date && (
-                    <button
-                      type="button"
-                      className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-neutral-400 hover:text-neutral-900"
-                      aria-label="Clear date"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        onDateChange(undefined)
+              </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[min(100vw-2rem,380px)] rounded-xl border-border p-0 shadow-lg"
+            align="start"
+          >
+            <Command className="rounded-xl">
+              <CommandInput placeholder="Search activities..." />
+              <CommandList>
+                <CommandEmpty>No match.</CommandEmpty>
+                <CommandGroup heading="Popular">
+                  {PLANNING_OPTIONS.slice(0, 8).map((opt) => (
+                    <CommandItem
+                      key={opt}
+                      value={opt}
+                      onSelect={() => {
+                        onPlanningChange(opt)
+                        setPlanOpen(false)
                       }}
                     >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </div>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] rounded-xl border border-primary/25 bg-white p-0 shadow-lg" align="end">
-              <DateTimePickerPanel
-                date={date}
-                startTime={startTime}
-                endTime={endTime}
-                onDateChange={onDateChange}
-                onStartTimeChange={onStartTimeChange}
-                onEndTimeChange={onEndTimeChange}
-              />
-            </PopoverContent>
-          </Popover>
+                      {opt}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                <CommandGroup heading="All">
+                  {PLANNING_OPTIONS.slice(8).map((opt) => (
+                    <CommandItem
+                      key={opt}
+                      value={opt}
+                      onSelect={() => {
+                        onPlanningChange(opt)
+                        setPlanOpen(false)
+                      }}
+                    >
+                      {opt}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
-          <div className={cn(
-            "flex items-stretch bg-white lg:bg-transparent",
-            size === "lg" ? "border-t border-primary/15 p-2 lg:border-l lg:border-t-0 lg:p-0" : 
-            size === "md" ? "p-1.5 lg:p-1.5 lg:pl-0 lg:pr-1 lg:rounded-r-[12px]" : 
-            "border-t border-primary/15 p-1 lg:border-l lg:border-t-0 lg:p-0"
-          )}>
-            <Button
-              type="button"
-              className={cn(
-                "h-auto w-full shrink-0 gap-1.5 font-semibold lg:w-auto lg:self-stretch",
-                size === "lg" ? "min-h-12 px-6 text-base lg:min-h-14 lg:px-8 rounded-lg lg:rounded-l-none bg-primary text-primary-foreground hover:bg-primary/90" : 
-                size === "md" ? "min-h-11 px-7 text-[15px] lg:px-8 rounded-[10px] bg-primary hover:bg-primary/90 text-white border-0 shadow-sm transition-all" : 
-                "min-h-9 px-3 text-xs lg:min-h-9 lg:px-5 rounded-lg lg:rounded-l-none bg-primary text-primary-foreground hover:bg-primary/90"
+        {/* WHERE */}
+        <div className={cn(segmentBase, whereFocused ? segmentActive : segmentIdle)}>
+          <span className={labelClass}>Where?</span>
+          {mapsLoaded ? (
+            <div className="relative">
+              <Autocomplete
+                onLoad={(ac) => {
+                  acRef.current = ac
+                }}
+                onPlaceChanged={onPlaceChanged}
+                options={{
+                  fields: ["formatted_address", "geometry", "name", "address_components"],
+                }}
+              >
+                <input
+                  key={place?.label ?? "no-place"}
+                  className={cn(
+                    "block w-full border-0 bg-transparent p-0 pr-5 outline-none sm:pr-6",
+                    "font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground",
+                    t.value
+                  )}
+                  placeholder="Search for a location"
+                  defaultValue={place?.label ?? ""}
+                  onFocus={() => setWhereFocused(true)}
+                  onBlur={() => setWhereFocused(false)}
+                />
+              </Autocomplete>
+              {place && (
+                <button
+                  type="button"
+                  className={cn(clearBtnClass, "z-10")}
+                  aria-label="Clear location"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onPlaceChange(null)}
+                >
+                  <X className={t.clearIcon} />
+                </button>
               )}
-              onClick={onSearch}
-            >
-              <Search className={cn(size === "lg" ? "size-5" : size === "md" ? "size-4.5" : "size-4")} />
-              Search
-            </Button>
-          </div>
+            </div>
+          ) : (
+            <p className={cn("text-muted-foreground sm:mt-0.5", t.value)}>Loading...</p>
+          )}
         </div>
-      
+
+        {/* WHEN */}
+        <Popover open={whenOpen} onOpenChange={setWhenOpen} modal={true}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(segmentBase, whenOpen ? segmentActive : segmentIdle)}
+            >
+              <span className={labelClass}>When?</span>
+              <div className="relative">
+                <span className={date ? valueClass : placeholderClass}>{whenSummary}</span>
+                {date && (
+                  <button
+                    type="button"
+                    className={clearBtnClass}
+                    aria-label="Clear date"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onDateChange(undefined)
+                    }}
+                  >
+                    <X className={t.clearIcon} />
+                  </button>
+                )}
+              </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-auto max-w-[calc(100vw-2rem)] rounded-xl border-border bg-popover p-0 shadow-lg"
+            align="end"
+          >
+            <DateTimePickerPanel
+              date={date}
+              startTime={startTime}
+              endTime={endTime}
+              onDateChange={onDateChange}
+              onStartTimeChange={onStartTimeChange}
+              onEndTimeChange={onEndTimeChange}
+              calendarProps={{
+                disabled: (date) => isBefore(date, startOfDay(new Date())),
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* SEARCH */}
+        <div className="flex shrink-0 items-stretch sm:ml-1">
+          <Button
+            type="button"
+            onClick={onSearch}
+            className={cn(
+              "w-full shrink-0 font-semibold shadow-sm transition-all hover:shadow-md sm:w-auto sm:self-stretch",
+              t.button
+            )}
+            {...searchButtonProps}
+          >
+            <Search className={t.searchIcon} />
+            <span className="hidden sm:inline">Search</span>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

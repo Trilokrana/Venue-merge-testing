@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 
-import { fetchActiveVenues } from "@/lib/venues/queries"
-
-import { ListingsPageClient } from "./listings-page-client"
+import { ListingsPageV2 } from "./listings-page-v2"
 
 export const dynamic = "force-dynamic"
 
@@ -13,6 +11,5 @@ export const metadata: Metadata = {
 }
 
 export default async function ListingsPage() {
-  const venues = await fetchActiveVenues()
-  return <ListingsPageClient venues={venues} />
+  return <ListingsPageV2 />
 }

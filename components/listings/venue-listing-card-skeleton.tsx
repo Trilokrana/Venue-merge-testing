@@ -7,16 +7,39 @@ type Props = {
 
 export function VenueListingCardSkeleton({ className }: Props) {
   return (
-    <article className={cn("overflow-hidden rounded-sm border bg-gray-50 p-2", className)}>
-      <div className="relative h-[140px] sm:h-[180px] md:h-[200px] overflow-hidden rounded">
-        <Skeleton className="h-full w-full rounded" />
+    <article className={cn("overflow-hidden rounded-2xl border bg-background", className)}>
+      {/* Image */}
+      <div className="relative h-[180px] sm:h-[210px] overflow-hidden rounded-t-2xl">
+        <Skeleton className="h-full w-full" />
+
+        {/* Top-left badge (instant book icon) */}
+        <div className="absolute left-2 top-2">
+          <Skeleton className="h-6 w-6 rounded-full" />
+        </div>
       </div>
 
-      <div className="space-y-1.5 px-2 pt-3 pb-1">
-        <Skeleton className="h-7 w-11/12" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-8 w-1/2 pt-2" />
+      {/* Content */}
+      <div className="space-y-3 p-3">
+        {/* Title + Tag */}
+        <div className="flex items-start justify-between gap-2">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+
+        {/* Location */}
+        <Skeleton className="h-4 w-1/2" />
+
+        {/* Description Box */}
+        <div className="rounded-xl border p-3 space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-32" />
+        </div>
       </div>
     </article>
   )

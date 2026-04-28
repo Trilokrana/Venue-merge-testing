@@ -80,3 +80,13 @@ export function formatCurrencyINR(amount: number) {
     currency: "INR",
   }).format(amount)
 }
+
+export function capitalizeFirstLetter(input: string): string {
+  if (!input) return ""
+
+  return input
+    .split(/[_\-\s]+/) // split on underscores, hyphens, or whitespace
+    .filter(Boolean) // drop empty segments from consecutive separators
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ")
+}

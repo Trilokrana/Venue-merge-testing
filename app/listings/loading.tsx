@@ -1,39 +1,71 @@
-import { VenueListingCardSkeleton } from "@/components/listings/venue-listing-card-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function ListingsLoading() {
+export default function ListingsSkeleton() {
   return (
-    <div className="min-h-screen bg-background text-base">
-      <nav className="sticky top-0 z-40 border-b border-primary/15 bg-gray-50 shadow-sm">
-        <div className="mx-auto flex w-full max-w-7xl justify-center px-4 py-3 md:px-6 lg:px-8">
-          <Skeleton className="h-[58px] w-full max-w-4xl rounded-2xl" />
-        </div>
-      </nav>
+    <div className="p-4 sm:p-6 space-y-6 max-w-[1400px] mx-auto">
+      {/* 🔍 Search Bar */}
+      <div className="rounded-2xl border p-3 sm:p-4 flex flex-col sm:flex-row gap-3">
+        <Skeleton className="h-10 flex-1 rounded-lg" />
+        <Skeleton className="h-10 flex-1 rounded-lg" />
+        <Skeleton className="h-10 flex-1 rounded-lg" />
+        <Skeleton className="h-10 w-full sm:w-[120px] rounded-lg" />
+      </div>
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
-        <div className="mb-4 flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <Skeleton className="h-5 w-[320px]" />
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-4 sm:gap-5">
-            <Skeleton className="h-10 w-40 rounded-xl" />
-            <Skeleton className="h-10 w-56 rounded-xl" />
-            <Skeleton className="h-10 w-24 rounded-xl" />
-            <Skeleton className="h-8 w-24 rounded-full" />
-          </div>
-        </div>
+      {/* 🎛 Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-28 rounded-full" />
+        ))}
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
-          <div className="min-h-0 min-w-0 flex-1 basis-0 lg:min-w-0">
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <VenueListingCardSkeleton key={i} />
-              ))}
+        <div className="ml-auto flex items-center gap-2">
+          <Skeleton className="h-6 w-20" />
+          <Skeleton className="h-6 w-10 rounded-full" />
+        </div>
+      </div>
+
+      {/* 📦 Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* 🧱 Cards Grid */}
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border overflow-hidden p-3 space-y-3">
+              {/* Image */}
+              <Skeleton className="h-[140px] sm:h-[160px] w-full rounded-xl" />
+
+              {/* Title */}
+              <Skeleton className="h-4 w-3/4" />
+
+              {/* Location */}
+              <Skeleton className="h-3 w-1/2" />
+
+              {/* Description */}
+              <Skeleton className="h-10 w-full rounded-md" />
+
+              {/* Time */}
+              <Skeleton className="h-3 w-1/3" />
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
             </div>
-          </div>
-
-          <div className="flex w-full min-w-0 flex-col lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-6rem)] lg:w-[min(100%,360px)] lg:max-w-[360px] lg:shrink-0 lg:self-start">
-            <Skeleton className="h-[360px] w-full flex-1 rounded-xl lg:min-h-0" />
-          </div>
+          ))}
         </div>
+
+        {/* 🗺 Map (Hidden on small screens) */}
+        <div className="hidden lg:block">
+          <Skeleton className="h-[600px] w-full rounded-2xl" />
+        </div>
+      </div>
+
+      {/* 🔢 Pagination */}
+      <div className="flex items-center justify-center gap-2 pt-4">
+        <Skeleton className="h-8 w-20 rounded-md" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-8 rounded-md" />
+        ))}
+        <Skeleton className="h-8 w-20 rounded-md" />
       </div>
     </div>
   )

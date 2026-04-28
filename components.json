@@ -23,6 +23,7 @@
   },
   "registries": {
     "@reui": "https://reui.io/r/{style}/{name}.json",
-    "@shadcnhooks": "https://shadcn-hooks.com/r/{name}.json"
+    "@shadcnhooks": "https://shadcn-hooks.com/r/{name}.json",
+    "@shark": "https://shark.vini.one/r/{name}.json"
   }
 }

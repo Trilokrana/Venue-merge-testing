@@ -10,31 +10,24 @@ import requireSession from "@/lib/user/require-session"
 export type BookingRow = Database["public"]["Tables"]["bookings"]["Row"]
 export type BookingStatus = Database["public"]["Enums"]["booking_status"]
 
-// ─── actions ──────────────────────────────────────────────────────────────────
-
 export type CreateBookingInput = {
   venueId: string
-  startAt: string   // ISO 8601 UTC
-  endAt: string     // ISO 8601 UTC
+  startAt: string
+  endAt: string
   notes?: string
+  status?: BookingStatus
 }
 
 export type CreateBookingResult =
   | { success: true; bookingId: string; calendarEventCreated: boolean }
   | { success: false; error: string }
 
-/**
- * Rentee creates a booking for a venue.
- * 1. Validates no overlap with existing active bookings.
- * 2. Inserts the booking row.
- * 3. Creates a Cronofy calendar event on the owner's calendar (if connected).
- * 4. Saves the cronofy_event_id back on the booking.
- */
+
 export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
   const supabase = await createSupabaseServerClient()
   const { user } = await requireSession(supabase)
 
-  // 1. Fetch venue to get owner_id + hourly_rate
+  // fetch venue to get owner_id + hourly_rate
   const { data: venue, error: venueErr } = await supabase
     .from("venues")
     .select("id, name, owner_id, hourly_rate")
@@ -46,7 +39,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   if (!venue.owner_id) return { success: false, error: "Venue has no owner" }
   if (!venue.hourly_rate) return { success: false, error: "Venue has no hourly rate set" }
 
-  // 2. Check for booking overlap (active bookings that overlap the requested window)
+  //  Check for booking overlap (active bookings that overlap the requested window)
   const { data: conflicts } = await supabase
     .from("bookings")
     .select("id")
@@ -60,7 +53,6 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return { success: false, error: "This time slot is already booked. Please choose another time." }
   }
 
-  // 2b. External busy from synced Cronofy calendar (webhook → venue_calendar_events), not double-counted with bookings
   const { data: externalBusy } = await supabase
     .from("venue_calendar_events")
     .select("id")
@@ -77,7 +69,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     }
   }
 
-  // 3. Insert booking
+
   const { data: booking, error: insertErr } = await supabase
     .from("bookings")
     .insert({
@@ -87,7 +79,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       start_at: input.startAt,
       end_at: input.endAt,
       hourly_rate: venue.hourly_rate,
-      status: "confirmed",
+      status: input.status ?? "confirmed",
       notes: input.notes ?? null,
     })
     .select("id")
@@ -98,12 +90,11 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return { success: false, error: "Could not create booking. Please try again." }
   }
 
-  // 4. Push event to owner's Cronofy calendar (best-effort — booking is still valid without it)
+
   let calendarEventCreated = false
   try {
     const accessToken = await getValidCronofyAccessTokenForUser(venue.owner_id)
     if (accessToken) {
-      // Get the venue's attached calendar ID if there is one
       const db = getSupabaseAdminClient() ?? supabase
       const { data: venueCalendar } = await db
         .from("venue_calendars")
@@ -115,14 +106,14 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 
       let eventUidStr = `booking-${booking.id}`
       if (calendarId) {
-         eventUidStr = `${eventUidStr}-${calendarId}`
+        eventUidStr = `${eventUidStr}-${calendarId}`
       }
 
       const eventUid = await createCronofyEvent({
         accessToken,
         calendarId: calendarId ?? undefined,
         eventUid: eventUidStr,
-        summary: `Booking: ${venue.name}`,
+        summary: input.status === "pending" ? `[Action Required] Booking Request: ${venue.name}` : `Booking: ${venue.name}`,
         description: input.notes
           ? `Guest note: ${input.notes}`
           : `Venue booked by a guest via Supernova Slamdown.`,
@@ -145,7 +136,6 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   return { success: true, bookingId: booking.id, calendarEventCreated }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 export type CancelBookingResult =
   | { success: true }
@@ -197,20 +187,20 @@ export async function cancelBooking(bookingId: string): Promise<CancelBookingRes
     try {
       const accessToken = await getValidCronofyAccessTokenForUser(booking.owner_id)
       if (accessToken) {
-        
+
         let calendarId: string | undefined
         // Find venue to get correct calendar
         const db = getSupabaseAdminClient() ?? supabase
         const { data: bData } = await db.from("bookings").select("venue_id").eq("id", bookingId).single()
         if (bData?.venue_id) {
-           const { data: vCal } = await db.from("venue_calendars").select("cronofy_calendar_id").eq("venue_id", bData.venue_id).single()
-           calendarId = vCal?.cronofy_calendar_id ?? undefined
+          const { data: vCal } = await db.from("venue_calendars").select("cronofy_calendar_id").eq("venue_id", bData.venue_id).single()
+          calendarId = vCal?.cronofy_calendar_id ?? undefined
         }
-        
-        await deleteCronofyEvent({ 
-          accessToken, 
+
+        await deleteCronofyEvent({
+          accessToken,
           eventUid: booking.cronofy_event_id,
-          calendarId 
+          calendarId
         })
       }
     } catch (err) {
@@ -221,7 +211,6 @@ export async function cancelBooking(bookingId: string): Promise<CancelBookingRes
   return { success: true }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** Rentee: fetch their upcoming + past bookings (with venue name). */
 export async function getMyBookings() {
@@ -302,3 +291,94 @@ export async function getVenueBookings(venueId: string) {
   }
   return data ?? []
 }
+
+export async function approveBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createSupabaseServerClient()
+  const { user } = await requireSession(supabase)
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('id, owner_id, status, notes')
+    .eq('id', bookingId)
+    .maybeSingle()
+
+  if (!booking) return { success: false, error: 'Booking not found' }
+  if (booking.owner_id !== user.id) return { success: false, error: 'Not authorised' }
+  if (booking.status !== 'pending') return { success: false, error: 'Booking is not pending' }
+
+  // Use notes to mark as approved to bypass enum restrictions and wait for renter's payment
+  const newNotes = booking.notes ? `[OWNER_APPROVED]\n${booking.notes}` : '[OWNER_APPROVED]'
+  const { error } = await supabase.from('bookings').update({ notes: newNotes }).eq('id', bookingId)
+
+  if (error) {
+    console.error('[approveBooking] error', error)
+    return { success: false, error: 'Could not approve booking' }
+  }
+  return { success: true }
+}
+
+export async function checkBookingApproval(bookingId: string): Promise<boolean> {
+  const supabase = await createSupabaseServerClient()
+  const { data } = await supabase.from('bookings').select('status, notes').eq('id', bookingId).single()
+  if (!data) return false
+  if (data.status === 'confirmed') return true
+  if (data.notes && data.notes.includes('[OWNER_APPROVED]')) return true
+  return false
+}
+
+export async function confirmBookingPayment(bookingId: string): Promise<{ success: boolean; error?: string }> {
+  const db = getSupabaseAdminClient() || await createSupabaseServerClient()
+  
+  // Fetch booking details to update cronofy event
+  const { data: booking, error: fetchErr } = await db.from('bookings').select(`
+    *,
+    venues(name)
+  `).eq('id', bookingId).single()
+  
+  if (fetchErr || !booking) {
+     return { success: false, error: fetchErr?.message || "Booking not found" }
+  }
+
+  const { error } = await db.from('bookings').update({ status: 'confirmed' }).eq('id', bookingId)
+  if (error) {
+     console.error("[confirmBookingPayment] RLS or DB error", error)
+     return { success: false, error: error.message }
+  }
+
+  // Update cronofy event if we have one
+  if (booking.cronofy_event_id) {
+     try {
+       const accessToken = await getValidCronofyAccessTokenForUser(booking.owner_id)
+       if (accessToken) {
+         let calendarId: string | undefined
+         if (booking.venue_id) {
+           const { data: vCal } = await db.from("venue_calendars").select("cronofy_calendar_id").eq("venue_id", booking.venue_id).single()
+           calendarId = vCal?.cronofy_calendar_id ?? undefined
+         }
+         
+         const venueName = (booking.venues as any)?.name ?? "Unknown Venue"
+         
+         await createCronofyEvent({
+            accessToken,
+            calendarId: calendarId,
+            eventUid: booking.cronofy_event_id,
+            summary: `Booking: ${venueName}`,
+            description: booking.notes
+              ? `Guest note: ${booking.notes}`
+              : `Venue booked by a guest via Supernova Slamdown.`,
+            start: { time: booking.start_at, tzid: "UTC" },
+            end: { time: booking.end_at, tzid: "UTC" },
+         })
+       }
+     } catch (err) {
+       console.error("[confirmBookingPayment] Cronofy event update failed (non-fatal)", err)
+     }
+  }
+
+  return { success: true }
+}
+
+export async function rejectBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
+  return await cancelBooking(bookingId) // alias for owner rejecting it
+}
+
