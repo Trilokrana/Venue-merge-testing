@@ -2,10 +2,11 @@ import { CalendarConnectedSuccessPanel } from "@/app/connect-calendar/components
 import { ConnectCalendarClient } from "@/app/connect-calendar/components/ConnectCalendarClient"
 import { CRONOFY_SCOPE, getCronofyConnectPublicConfig } from "@/lib/cronofy/config"
 import { encodeCronofyState } from "@/lib/cronofy/oauth-state"
-import { getPublicAppOrigin } from "@/lib/site-origin"
 import { ensureVenueCronofyCalendarAndChannel } from "@/lib/cronofy/venue-setup"
+import { getPublicAppOrigin } from "@/lib/site-origin"
 import { getSupabaseAdminClient } from "@/lib/supabase/admin-client"
 import { createSupabaseServerClient } from "@/lib/supabase/server-client"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -54,12 +55,22 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
   if (!connect) {
     return (
       <div className="container max-w-2xl py-10">
-        <p className="text-destructive text-sm">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Cronofy is not configured. Set{" "}
-          <code className="rounded bg-muted px-1">NEXT_PUBLIC_CRONOFY_CLIENT_ID</code> and{" "}
-          <code className="rounded bg-muted px-1">NEXT_PUBLIC_CRONOFY_REDIRECT_URI</code> in your env.
-        </p>
-        <Link href="/venues" className="mt-4 inline-block text-sm text-primary underline">
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            NEXT_PUBLIC_CRONOFY_CLIENT_ID
+          </code>{" "}
+          and{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            NEXT_PUBLIC_CRONOFY_REDIRECT_URI
+          </code>{" "}
+          in your env.
+        </div>
+        <Link
+          href="/venues"
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
           Back to venues
         </Link>
       </div>
@@ -77,13 +88,20 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
   const connected = Boolean(existing?.sub)
 
   const breadcrumbs = (
-    <nav className="mb-6 text-base text-muted-foreground">
-      <Link href="/venues" className="font-medium text-foreground hover:underline">
+    <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Link
+        href="/venues"
+        className="font-medium text-foreground transition-colors hover:text-primary"
+      >
         Venues
       </Link>
-      <span className="mx-2 text-muted-foreground/80">/</span>
-      <span className="font-medium text-foreground">{venue.name}</span>
-      <span className="mx-2 text-muted-foreground/80">/</span>
+      <span aria-hidden className="text-muted-foreground/50">
+        /
+      </span>
+      <span className="truncate font-medium text-foreground">{venue.name}</span>
+      <span aria-hidden className="text-muted-foreground/50">
+        /
+      </span>
       <span className="text-muted-foreground">Calendar sync</span>
     </nav>
   )
@@ -91,9 +109,10 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
   const backLink = (
     <Link
       href="/venues"
-      className="mt-10 inline-flex text-sm font-medium text-primary hover:underline"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
-      ← Back to my venues
+      <ArrowLeft className="size-4" aria-hidden />
+      Back to my venues
     </Link>
   )
 
@@ -121,15 +140,15 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
     }
 
     return (
-      <div className="container max-w-3xl -mt-2 pb-10 pt-0 md:-mt-3">
+      <div className="space-y-4">
+        {backLink}
         <CalendarConnectedSuccessPanel
-          breadcrumb={breadcrumbs}
+          // breadcrumb={breadcrumbs}
           venueId={venue.id}
           venueName={venue.name}
           freshOAuthSuccess={freshOAuthSuccess}
           oauthError={oauthError}
         />
-        {backLink}
       </div>
     )
   }
@@ -142,19 +161,28 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
   }
 
   return (
-    <div className="container max-w-3xl -mt-2 pb-10 pt-0 md:-mt-3">
-      <div className="-mt-4 mb-6 md:-mt-5">{breadcrumbs}</div>
+    <div className="space-y-4">
+      {backLink}
 
-      <h1 className="text-2xl font-semibold tracking-tight">Connect your calendar</h1>
-      <p className="mt-2 text-muted-foreground leading-relaxed">
-        Link Google, Outlook, Apple, or another provider so booking availability reflects your real
-        calendar. This applies to your account; we return you here after you authorize Cronofy.
-      </p>
+      {/* {breadcrumbs} */}
 
-      <div className="mt-8 rounded-lg border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-        <p>
-          <span className="font-medium text-foreground">Listing:</span> {venue.name}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">Connect your calendar</h1>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          Link Google, Outlook, Apple, or another provider so booking availability reflects your
+          real calendar. This applies to your account; we return you here after you authorize
+          Cronofy.
         </p>
+      </div>
+
+      <div className="rounded-lg border bg-muted/40 p-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Listing</span>
+          <span aria-hidden className="text-muted-foreground/50">
+            ·
+          </span>
+          <span className="truncate font-medium text-foreground">{venue.name}</span>
+        </div>
       </div>
 
       <div className="mt-8">
@@ -170,8 +198,6 @@ export default async function VenueCalendarSyncPage({ params, searchParams }: Pr
           hasExistingCredentials={false}
         />
       </div>
-
-      {backLink}
     </div>
   )
 }

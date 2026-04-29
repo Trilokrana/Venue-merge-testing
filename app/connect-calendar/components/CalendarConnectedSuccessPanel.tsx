@@ -1,8 +1,10 @@
-import type { ReactNode } from "react"
+import { ArrowRight, CalendarRange, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
-import { CalendarRange, CheckCircle2 } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import IconWrapper from "@/components/ui/icon-wrapper"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -39,12 +41,12 @@ export function CalendarConnectedSuccessPanel({
 
   return (
     <div className={cn("space-y-6", className)}>
-      {breadcrumb ? <div className="-mt-4 mb-0 w-full md:mt-4">{breadcrumb}</div> : null}
+      {breadcrumb ? breadcrumb : null}
 
       {oauthError ? (
         <Alert variant="destructive">
           <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription className="text-destructive/90">
+          <AlertDescription>
             {safeErrorLabel(oauthError)}. Try connecting again
             {isVenue ? " from this page or your venue list." : "."}
           </AlertDescription>
@@ -52,33 +54,43 @@ export function CalendarConnectedSuccessPanel({
       ) : null}
 
       <div
-        className={cn(
-          "relative overflow-hidden rounded-2xl border border-emerald-500/25",
-          "bg-linear-to-br from-emerald-500/12 via-background to-background",
-          "p-6 shadow-sm sm:p-8"
-        )}
+        className={cn("relative overflow-hidden rounded-xl border bg-card", "p-4 shadow-sm sm:p-4")}
       >
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/20"
-            aria-hidden
-          >
-            <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="min-w-0 space-y-3">
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Your calendars are linked. Availability can use your linked calendars for accurate
+          <IconWrapper variant="secondary">
+            <CheckCircle2 className="size-4 text-primary" />
+          </IconWrapper>
+          <div className="min-w-0 flex-1 space-y-2">
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">
+              Your calendars are linked. Availability will use your linked calendars for accurate
               booking windows.
             </p>
+
+            {isVenue && venueName ? (
+              <div className="mt-4 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Listing</span>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="truncate font-medium text-foreground">{venueName}</span>
+              </div>
+            ) : null}
+
             {isVenue && venueId ? (
-              <Link
-                href={`/venues/${venueId}/calendar`}
-                className="inline-flex items-center gap-2 pt-1 text-sm font-medium text-primary hover:underline"
-              >
-                <CalendarRange className="size-4 shrink-0" aria-hidden />
-                Open availability calendar
-              </Link>
+              <div className="pt-3">
+                <Link
+                  href={`/venues/${venueId}/calendar`}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                >
+                  <Button>
+                    <CalendarRange className="size-4 shrink-0" aria-hidden />
+                    <span>Open availability calendar</span>
+                    <ArrowRight
+                      className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  </Button>
+                </Link>
+              </div>
             ) : null}
           </div>
         </div>

@@ -3,7 +3,6 @@ import createClient from "@/lib/supabase/server-component-client"
 import { createServiceSupabaseClient } from "@/lib/supabase/service-client"
 import * as mutations from "@/lib/venues/database/mutations"
 import * as queries from "@/lib/venues/database/queries"
-import { ListingsFilters, ListingsWithRelations } from "@/schemas/listings.schema"
 import {
   createVenueSchema,
   deleteVenueSchema,
@@ -358,35 +357,5 @@ function normalizeAddressComponents(result: GooglePlaceDetailsResult): Normalize
     formatted_address,
     lat,
     lng,
-  }
-}
-
-export async function getListings(
-  filters?: ListingsFilters
-): Promise<PaginatedResult<ListingsWithRelations>> {
-  try {
-    // const client = await createClient()
-    // await requireSession(client)
-
-    const venues = await queries.getFilteredListings({
-      filters,
-      page: filters?.page ?? 1,
-      pageSize: filters?.perPage ?? 24,
-    })
-
-    return {
-      success: true,
-      data: {
-        items: venues.items ?? [],
-        meta: venues.meta as Meta,
-      },
-      statusCode: 200,
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch your venues",
-      statusCode: 500,
-    }
   }
 }

@@ -1,7 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { CheckCircle2 } from "lucide-react"
 import Script from "next/script"
+import { useEffect, useRef, useState } from "react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const TARGET_ID = "cronofy-calendar-sync"
 
@@ -128,25 +131,32 @@ export function ConnectCalendarClient({
   return (
     <>
       {message === "success" && (
-        <p className="mb-4 rounded-md bg-green-100 px-3 py-2 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
-          Calendar connected successfully.
-        </p>
+        <Alert className="mb-4 border-primary/20 bg-primary/5">
+          <CheckCircle2 className="size-4 text-primary" />
+          <AlertTitle className="text-foreground">Calendar connected successfully</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Your calendars are now linked.
+          </AlertDescription>
+        </Alert>
       )}
       {message === "error" && (
-        <div className="mb-4 space-y-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <p>Something went wrong. Try connecting again.</p>
-          {errorHint && <p className="text-foreground/90">{errorHint}</p>}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <p>Try connecting again.</p>
+            {errorHint && <p className="text-foreground/90">{errorHint}</p>}
+          </AlertDescription>
+        </Alert>
       )}
       {elementToken === "loading" && (
         <p className="mb-4 text-sm text-muted-foreground">Loading calendar status…</p>
       )}
-      <div id={TARGET_ID} ref={containerRef} className="min-h-[200px]" />
-      <Script
-        src={scriptUrl}
-        strategy="afterInteractive"
-        onLoad={() => setScriptReady(true)}
+      <div
+        id={TARGET_ID}
+        ref={containerRef}
+        className="min-h-[200px] rounded-lg border bg-card p-4"
       />
+      <Script src={scriptUrl} strategy="afterInteractive" onLoad={() => setScriptReady(true)} />
     </>
   )
 }

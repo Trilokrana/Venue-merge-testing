@@ -15,6 +15,7 @@ import {
   uploadImageToStorage,
   VENUE_IMAGES_BUCKET,
 } from "../storage"
+import { generateUniqueVenueSlug } from "../slug"
 
 // Type guard to check if an image is staged (new upload)
 function isStagedImage(image: unknown): image is {
@@ -69,9 +70,18 @@ export async function createVenue(
   const uploadedPaths: string[] = []
 
   try {
+    // Generate a unique slug: "{name}-{venue_type}-{6charId}"
+    // Retries on the (extremely unlikely) collision.
+    const uniqueSlug = await generateUniqueVenueSlug(
+      supabase,
+      venueData.name,
+      venueData.venue_type
+    )
+
     // 1. Create venue
     const venueInsert: Database["public"]["Tables"]["venues"]["Insert"] = {
       ...(venueData as Database["public"]["Tables"]["venues"]["Insert"]),
+      slug: uniqueSlug,
       phone: normalizePhone((venueData as { phone?: unknown }).phone),
     }
 
@@ -119,13 +129,11 @@ export async function createVenue(
 
       for (let i = 0; i < images.length; i++) {
         const image = images[i]
-        console.log("🚀 ~ createVenue ~ image:", image)
         if (!image?.file) continue
 
         const imageId = crypto.randomUUID()
 
         const compressedFile = await compressImage(image.file as File)
-        console.log("🚀 ~ createVenue ~ compressedFile:", compressedFile)
 
         const storagePath = await uploadImageToStorage(supabase, compressedFile, venueId!, imageId)
 
@@ -158,7 +166,7 @@ export async function createVenue(
       }
     }
 
-    return venueId
+    return { id: venueId, slug: uniqueSlug }
   } catch (err) {
     console.error("Create venue failed, rolling back...", err)
 
@@ -171,7 +179,6 @@ export async function createVenue(
 
     if (venueId) {
       // 2. Delete DB records (order matters if FK constraints exist)
-
       await supabase.from("images").delete().eq("venue_id", venueId)
       await supabase.from("addresses").delete().eq("venue_id", venueId)
       await supabase.from("venues").delete().eq("id", venueId)
@@ -197,10 +204,44 @@ export async function updateVenue(
   const uploadedPaths: string[] = [] // track new uploads for rollback
 
   try {
-    // 1. Update venue data
+    // 1. Determine if slug needs to be regenerated.
+    // We only regenerate when name or venue_type actually changes — otherwise
+    // existing links/bookmarks for this venue would break unnecessarily.
+    let newSlug: string | undefined
+
+    const incomingName = (venueData as { name?: string }).name
+    const incomingVenueType = (venueData as { venue_type?: string }).venue_type
+
+    if (incomingName !== undefined || incomingVenueType !== undefined) {
+      // Fetch current values so we can compare and fill in whichever side
+      // wasn't provided in the update payload.
+      const { data: currentVenue, error: fetchError } = await supabase
+        .from("venues")
+        .select("name, venue_type")
+        .eq("id", id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      const finalName = incomingName ?? currentVenue.name
+      const finalVenueType = incomingVenueType ?? currentVenue.venue_type
+
+      const nameChanged =
+        incomingName !== undefined && incomingName !== currentVenue.name
+      const typeChanged =
+        incomingVenueType !== undefined &&
+        incomingVenueType !== currentVenue.venue_type
+
+      if (nameChanged || typeChanged) {
+        newSlug = await generateUniqueVenueSlug(supabase, finalName, finalVenueType)
+      }
+    }
+
+    // 2. Update venue data
     const venueUpdate: Database["public"]["Tables"]["venues"]["Update"] = {
       ...(venueData as Database["public"]["Tables"]["venues"]["Update"]),
       phone: normalizePhone((venueData as { phone?: unknown }).phone),
+      ...(newSlug ? { slug: newSlug } : {}),
     }
 
     const { data: venueResult, error: venueError } = await supabase
@@ -212,7 +253,7 @@ export async function updateVenue(
 
     if (venueError && venueError.code !== "PGRST106") throw venueError
 
-    // 2. Update address if provided
+    // 3. Update address if provided
     if (address) {
       if (placeId) {
         const { error: rpcError } = await supabase.rpc("upsert_venue_address", {
@@ -245,7 +286,7 @@ export async function updateVenue(
       }
     }
 
-    // 3. Update images if provided
+    // 4. Update images if provided
     if (images !== undefined) {
       // Fetch current images for this venue
       const { data: currentImages, error: fetchError } = await supabase
@@ -290,7 +331,6 @@ export async function updateVenue(
           const imageId = crypto.randomUUID()
 
           const compressedFile = await compressImage(image.file)
-          console.log("🚀 ~ updateVenue ~ compressedFile:", compressedFile)
 
           const storagePath = await uploadImageToStorage(supabase, compressedFile, id, imageId)
 
@@ -304,7 +344,6 @@ export async function updateVenue(
             throw new Error("Image width/height required")
           }
 
-          console.log("🚀 ~ updateVenue ~ image.file.size:", image.file.size)
           newImageRows.push({
             id: imageId,
             venue_id: id,

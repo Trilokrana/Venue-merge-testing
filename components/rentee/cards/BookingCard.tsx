@@ -1,6 +1,7 @@
 import { formatLocationLine } from "@/app/listings/data"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Rating } from "@/components/ui/rating"
 import { BookingWithRelations } from "@/lib/bookings/types"
 import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -64,14 +65,14 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
-      {booking.status}
+      {capitalizeFirstLetter(booking.status)}
     </span>
   )
 
   const RatingBadge = booking.venue.rating != null && (
     <span className="inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
-      <Star className="size-3 fill-amber-500 text-amber-500" />
-      {Number(booking.venue.rating).toFixed(1)}
+      <Rating readOnly value={booking.venue.rating || 0} />
+      {Number(booking.venue.rating).toFixed(2)}
     </span>
   )
 
@@ -105,10 +106,10 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
       <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-primary/20 via-transparent to-transparent" />
 
       {/* Status — top right (only show on image in grid view; in list view we move it to the body) */}
-      <div className="absolute top-3 right-3">{StatusBadge}</div>
-
-      {/* Rating — top left */}
-      {RatingBadge && <div className="absolute top-3 left-3">{RatingBadge}</div>}
+      <div className="absolute top-3 right-3">
+        {/* <Badge variant={booking.status} className="text-xs">{capitalizeFirstLetter(booking.status)}</Badge> */}
+        {StatusBadge}
+      </div>
     </div>
   )
 
@@ -127,32 +128,43 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
       {ImageBlock}
 
       <CardContent
-        className={cn("flex flex-1 flex-col gap-4", listView ? "min-w-0 p-4 sm:p-5" : "p-5")}
+        className={cn("flex flex-1 flex-col gap-2", listView ? "min-w-0 p-4 sm:p-5" : "p-5")}
       >
         {/* Title row — in list view we put status next to title since it's not on the image */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1.5">
-            <h3 className="text-lg font-semibold leading-tight tracking-tight line-clamp-1">
-              {booking.venue.name?.trim()}
-            </h3>
-            {booking.venue.description && (
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {booking.venue.description}
-              </p>
+
+        <div className="flex flex-col gap-1.5">
+          {/* Title */}
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="line-clamp-1 text-[17px] font-semibold leading-tight tracking-tight text-foreground">
+              {booking?.venue?.name}
+            </h2>
+            {booking?.venue?.venue_type && !listView && (
+              <Badge variant="venue_type">
+                {capitalizeFirstLetter(booking?.venue?.venue_type)}
+              </Badge>
             )}
           </div>
-          {/* {listView && <div className="shrink-0">{StatusBadge}</div>} */}
+          {/* Description */}
+          {booking?.venue?.description && (
+            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-1">
+              {booking?.venue?.description}
+            </p>
+          )}
         </div>
+        {/* {listView && <div className="shrink-0">{StatusBadge}</div>} */}
 
         {/* Location */}
-        {booking?.venue?.addresses && (
-          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin className="mt-0.5 size-3.5 shrink-0" />
+
+        <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-4 w-4" />
             <span className="line-clamp-1">
               {formatLocationLine(booking?.venue?.addresses as VenueAddress | null)}
             </span>
           </div>
-        )}
+
+          {RatingBadge}
+        </div>
 
         {/* Date + Time + Footer.
             In list view we keep everything on a single horizontal row at the bottom
@@ -174,7 +186,7 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
                     <span className="text-muted-foreground">{timeLabel}</span>
                   </div>
                 )}
-                <Badge className="absolute -top-3 right-0 bg-background" variant="outline">
+                <Badge className="absolute -top-2 right-0" variant="venue_type">
                   {capitalizeFirstLetter(booking.venue.venue_type ?? "")}
                 </Badge>
               </div>
@@ -196,7 +208,7 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
           <>
             {/* Date + Time row (grid view) */}
             {(dateLabel || timeLabel) && (
-              <div className="relative flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg rounded-tr-none border border-border/60 bg-muted/40 px-3 py-2.5">
+              <div className="relative flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg rounded-tr-none border border-border/60 bg-muted/40 px-3 py-2.5">
                 {dateLabel && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="size-3.5 text-muted-foreground" />
@@ -209,17 +221,14 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
                     <span className="text-muted-foreground">{timeLabel}</span>
                   </div>
                 )}
-                <Badge className="absolute -top-3 right-0 bg-background" variant="outline">
-                  {capitalizeFirstLetter(booking.venue.venue_type ?? "")}
-                </Badge>
               </div>
             )}
 
             {/* Pricing footer (grid view) */}
-            <div className="mt-auto flex items-end justify-between border-t border-border/60 pt-4">
+            <div className="mt-auto flex items-end justify-between border-t border-border/60 pt-2">
               <div className="flex flex-col">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
-                <span className="text-xl font-semibold tracking-tight text-foreground">
+                <span className="text-lg font-semibold tracking-tight text-foreground">
                   ${Number(booking.total_amount ?? 0).toLocaleString()}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">USD</span>
                 </span>

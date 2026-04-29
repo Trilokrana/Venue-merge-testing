@@ -32,8 +32,6 @@ import { useRouter } from "next/navigation"
 import { Fragment, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { Info } from "lucide-react"
-
 import VenueDetailLoading from "@/app/listings/[slug]/loading"
 import { formatVenueType } from "@/app/listings/data"
 import { VenueDetailMap } from "@/components/listings/venue-detail-map"
@@ -230,8 +228,8 @@ const SingleVenueView = ({
           <div className="min-w-0 space-y-4">
             <Card size="sm" className="shadow-sm">
               <CardContent className="text-sm leading-relaxed flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
-                <BookText className="size-4 text-muted-foreground mt-1.5" />
-                <div className="space-y-0">
+                <BookText className="size-4 text-muted-foreground mt-1.5 w-4" />
+                <div className="space-y-0 w-full">
                   <p className="text-lg font-semibold">About this space</p>
                   {venue?.description ? (
                     <p>{venue?.description}</p>
@@ -248,7 +246,7 @@ const SingleVenueView = ({
               <Card size="sm" className="shadow-sm">
                 <CardContent className="text-sm leading-relaxed flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
                   <HousePlus className="size-4 text-muted-foreground mt-1.5 min-w-4" />
-                  <div className="space-y-2 sm:space-y-2.5">
+                  <div className="space-y-2 sm:space-y-2.5 w-full">
                     <p className="text-lg font-semibold">Amenities</p>
                     <div className="flex flex-wrap gap-2">
                       {venue?.amenities?.map((a) => (
@@ -386,10 +384,11 @@ const SingleVenueView = ({
                     </div>
 
                     {/* Right */}
-                    <Button asChild variant="link" size="sm" className="w-full border">
+                    <Button asChild variant="secondary" size="sm" className="w-full">
                       <Link
                         href={`/venues/${venue?.id}/calendar`}
                         onClick={(e) => e.stopPropagation()}
+                        className="w-full text-xs text-muted-foreground"
                       >
                         Availability
                       </Link>

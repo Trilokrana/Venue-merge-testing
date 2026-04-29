@@ -74,7 +74,7 @@ export type VenueFormOutput = z.infer<typeof createVenueSchema>
 
 /** Stable reference — avoid `steps={[...]}` each render (invalidates callbacks / context). */
 const formSteps: MultiStepFormStep<FormData>[] = [
-  { id: "basic-information", fields: ["name", "slug", "description", "venue_type", "event_types"] },
+  { id: "basic-information", fields: ["name", "description", "venue_type", "event_types"] },
   {
     id: "configuration",
     fields: [
@@ -134,22 +134,22 @@ function CreateVenueNextButton({
           shouldFocus: true,
         })
         if (!ok) return
-        if (step.id === "basic-information") {
-          if (slugGate === "taken") {
-            form.setError("slug", {
-              type: "manual",
-              message: "Slug is already taken",
-            })
-            return
-          }
-          if (slugGate === "check_failed") {
-            form.setError("slug", {
-              type: "manual",
-              message: "Failed to check slug",
-            })
-            return
-          }
-        }
+        // if (step.id === "basic-information") {
+        //   if (slugGate === "taken") {
+        //     form.setError("slug", {
+        //       type: "manual",
+        //       message: "Slug is already taken",
+        //     })
+        //     return
+        //   }
+        //   if (slugGate === "check_failed") {
+        //     form.setError("slug", {
+        //       type: "manual",
+        //       message: "Failed to check slug",
+        //     })
+        //     return
+        //   }
+        // }
         setActiveStep((s) => Math.min(s + 1, steps.length - 1))
       }}
       disabled={disabled}
@@ -168,7 +168,7 @@ const defaultFormValues: FormData = {
   images: [],
   name: "",
   description: undefined,
-  slug: undefined,
+  // slug: undefined,
   venue_type: undefined as unknown as VenueFormOutput["venue_type"],
   event_types: [],
   capacity: undefined,
@@ -202,7 +202,7 @@ const initialFormValues: FormData = {
   images: [],
   name: "New Venue",
   description: "New Venue Description",
-  slug: "new-venue",
+  // slug: "new-venue",
   venue_type: "banquet_hall",
   event_types: ["wedding", "concert"],
   capacity: 100,

@@ -47,7 +47,7 @@ export function mapVenueToCreateFormDefaults(venue: VenueWithRelations): CreateV
   return {
     name: venue?.name ?? "",
     description: venue?.description ?? undefined,
-    slug: venue?.slug ?? undefined,
+    // slug: venue?.slug ?? undefined,
     venue_type: venue?.venue_type as CreateVenueFormInput["venue_type"],
     event_types: (venue?.event_types ?? []) as CreateVenueFormInput["event_types"],
     capacity: venue?.capacity ?? undefined,

@@ -41,6 +41,7 @@ export function DeleteVenueModal({
       }, 100)
     }
   }, [dialogControl?.control.open])
+  const isMatch = value.trim() === venue?.name?.trim()
   return (
     <AlertDialog
       open={dialogControl?.control.open}
@@ -88,13 +89,13 @@ export function DeleteVenueModal({
             variant="destructive"
             onClick={async (e) => {
               e.preventDefault() // 🚀 STOP auto close
-              if (value !== venue?.name) {
+              if (!isMatch) {
                 toast.error("Please enter the correct name")
                 return
               }
               await onConfirm(venue.id)
             }}
-            disabled={isLoading || value !== venue?.name}
+            disabled={isLoading || !isMatch}
           >
             {isLoading ? (
               <>

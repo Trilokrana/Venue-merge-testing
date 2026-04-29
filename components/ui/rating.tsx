@@ -1,14 +1,11 @@
-"use client";
+"use client"
 
-import {
-  RatingGroup as ArkRatingGroup,
-  useRatingGroupContext,
-} from "@ark-ui/react/rating-group";
-import { StarIcon } from "lucide-react";
-import React from "react";
-import { cn } from "@/lib/utils";
+import { RatingGroup as ArkRatingGroup, useRatingGroupContext } from "@ark-ui/react/rating-group"
+import { StarIcon } from "lucide-react"
+import React from "react"
+import { cn } from "@/lib/utils"
 
-export const useRating = useRatingGroupContext;
+export const useRating = useRatingGroupContext
 
 interface RatingProps extends React.ComponentProps<typeof ArkRatingGroup.Root> {
   /**
@@ -16,23 +13,23 @@ interface RatingProps extends React.ComponentProps<typeof ArkRatingGroup.Root> {
    *
    * @default <StarIcon />
    */
-  icon?: React.ReactNode;
+  icon?: React.ReactNode
 }
 
 export const Rating = (props: RatingProps) => {
   const {
-    icon = <StarIcon />,
+    icon = <StarIcon className="w-full h-full" strokeWidth={0.75} />,
     allowHalf = false,
     count = 5,
     className,
     ...rest
-  } = props;
+  } = props
 
   return (
     <ArkRatingGroup.Root
       allowHalf={allowHalf}
       className={cn(
-        "**:data-[slot=rating-item-indicator]:size-6",
+        "**:data-[slot=rating-item-indicator]:size-4 flex items-center",
         "text-warning",
         "data-readonly:pointer-events-none",
         className
@@ -41,10 +38,7 @@ export const Rating = (props: RatingProps) => {
       data-slot="rating"
       {...rest}
     >
-      <ArkRatingGroup.Control
-        className="inline-flex items-center gap-1"
-        data-slot="rating-control"
-      >
+      <ArkRatingGroup.Control className="inline-flex items-center gap-1" data-slot="rating-control">
         <ArkRatingGroup.Context>
           {({ items }) =>
             items.map((item) => (
@@ -88,13 +82,11 @@ export const Rating = (props: RatingProps) => {
         <ArkRatingGroup.HiddenInput />
       </ArkRatingGroup.Control>
     </ArkRatingGroup.Root>
-  );
-};
+  )
+}
 
-export const RatingItem = (
-  props: React.ComponentProps<typeof ArkRatingGroup.Item>
-) => {
-  const { className, ...rest } = props;
+export const RatingItem = (props: React.ComponentProps<typeof ArkRatingGroup.Item>) => {
+  const { className, ...rest } = props
 
   return (
     <ArkRatingGroup.Item
@@ -109,5 +101,5 @@ export const RatingItem = (
       data-slot="rating-item"
       {...rest}
     />
-  );
-};
+  )
+}

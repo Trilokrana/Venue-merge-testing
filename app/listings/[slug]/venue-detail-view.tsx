@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Globe2,
   HousePlus,
-  Info,
   MapPin,
   MessageCircle,
   Phone,
@@ -188,8 +187,8 @@ export function VenueDetailView({ venue, isOwner = false }: Props) {
           <div className="min-w-0 space-y-4">
             <Card size="sm" className="shadow-sm">
               <CardContent className="text-sm leading-relaxed flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
-                <BookText className="size-4 text-muted-foreground mt-1.5" />
-                <div className="space-y-0">
+                <BookText className="size-4 text-muted-foreground mt-1.5 w-4" />
+                <div className="space-y-0 w-full">
                   <p className="text-lg font-semibold">About this space</p>
                   {venue.description ? (
                     <p>{venue.description}</p>
@@ -206,7 +205,7 @@ export function VenueDetailView({ venue, isOwner = false }: Props) {
               <Card size="sm" className="shadow-sm">
                 <CardContent className="text-sm leading-relaxed flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
                   <HousePlus className="size-4 text-muted-foreground mt-1.5 min-w-4" />
-                  <div className="space-y-2 sm:space-y-2.5">
+                  <div className="space-y-2 sm:space-y-2.5 w-full">
                     <p className="text-lg font-semibold">Amenities</p>
                     <div className="flex flex-wrap gap-2">
                       {venue.amenities.map((a) => (
@@ -380,11 +379,7 @@ export function VenueDetailView({ venue, isOwner = false }: Props) {
                       className="rounded-none"
                     />
                     {venue.phone?.[0] ? (
-                      <Button
-                        className="mt-4 w-full gap-2"
-                        variant="outline"
-                        asChild
-                      >
+                      <Button className="mt-4 w-full gap-2" variant="outline" asChild>
                         <a href={`tel:${venue.phone[0]}`}>
                           <Phone className="size-4" />
                           Call {venue.phone[0]}

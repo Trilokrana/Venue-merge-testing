@@ -194,7 +194,7 @@ export type VenueFormOutput = z.infer<typeof createVenueSchema>
 
 /** Stable reference — avoid `steps={[...]}` each render (invalidates callbacks / context). */
 const formSteps: MultiStepFormStep<FormData>[] = [
-  { id: "basic-information", fields: ["name", "slug", "description", "venue_type", "event_types"] },
+  { id: "basic-information", fields: ["name", "description", "venue_type", "event_types"] },
   {
     id: "configuration",
     fields: [
@@ -254,22 +254,22 @@ function UpdateVenueNextButton({
           shouldFocus: true,
         })
         if (!ok) return
-        if (step.id === "basic-information") {
-          if (slugGate === "taken") {
-            form.setError("slug", {
-              type: "manual",
-              message: "Slug is already taken",
-            })
-            return
-          }
-          if (slugGate === "check_failed") {
-            form.setError("slug", {
-              type: "manual",
-              message: "Failed to check slug",
-            })
-            return
-          }
-        }
+        // if (step.id === "basic-information") {
+        //   if (slugGate === "taken") {
+        //     form.setError("slug", {
+        //       type: "manual",
+        //       message: "Slug is already taken",
+        //     })
+        //     return
+        //   }
+        //   if (slugGate === "check_failed") {
+        //     form.setError("slug", {
+        //       type: "manual",
+        //       message: "Failed to check slug",
+        //     })
+        //     return
+        //   }
+        // }
         setActiveStep((s) => Math.min(s + 1, steps.length - 1))
       }}
       disabled={disabled}
@@ -304,7 +304,7 @@ export function UpdateVenueForm({
     defaultValues: {
       name: defaultValues?.name ?? "",
       description: defaultValues?.description ?? "",
-      slug: defaultValues?.slug ?? "",
+      // slug: defaultValues?.slug ?? "",
       venue_type: defaultValues?.venue_type ?? undefined,
       event_types: defaultValues?.event_types ?? [],
       capacity: defaultValues?.capacity ?? null,

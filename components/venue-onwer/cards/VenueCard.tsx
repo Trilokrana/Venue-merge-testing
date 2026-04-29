@@ -1,8 +1,12 @@
 // components/VenueCard.tsx
 "use client"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Rating } from "@/components/ui/rating"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { VenueAddress, VenueImage, VenueWithRelations } from "@/lib/venues/types"
 import {
@@ -12,9 +16,9 @@ import {
   Eye,
   MapPin,
   Pencil,
-  Star,
   Trash,
   Users,
+  Zap,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -49,18 +53,18 @@ export function VenueCard({
 }: VenueCardProps) {
   const addr = primaryAddress(venue?.addresses)
 
-  const featuredImage: VenueImage | null = Array.isArray(venue.images)
-    ? venue.images.length > 0
-      ? venue.images[0]
-      : venue.images[0]
+  const featuredImage: VenueImage | null = Array.isArray(venue?.images)
+    ? venue?.images.length > 0
+      ? venue?.images[0]
+      : venue?.images[0]
     : null
 
   const isListVarinat = variant === "list"
 
   // const priceLine =
   //   venue.hourly_rate != null ? `$${venue.hourly_rate.toLocaleString()} USD/hr` : "Request pricing"
-  const calendarOk = venue.calendar_sync === "connected"
-  const isBooked = venue.is_booked === true
+  const calendarOk = venue?.calendar_sync === "connected"
+  const isBooked = venue?.is_booked === true
 
   return (
     <Card
@@ -79,8 +83,8 @@ export function VenueCard({
       >
         {featuredImage ? (
           <Image
-            src={featuredImage.url}
-            alt={venue.name}
+            src={featuredImage?.url ?? ""}
+            alt={venue?.name}
             fill
             className="object-cover transition-transform duration-500 ease-out group-hover/item:scale-[1.04]"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -93,20 +97,27 @@ export function VenueCard({
 
         {/* Top-left status badge */}
         {isBooked && (
-          <div className="absolute left-3 top-3">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <div className="absolute left-3 bottom-3">
+            <Badge variant="instabook" className="text-xs font-medium">
               Booked
-            </span>
+            </Badge>
           </div>
         )}
 
-        {/* Top-right rating pill (moved from body for cleaner hierarchy) */}
-        {venue.rating && (
-          <div className="opacity-0 group-hover/item:opacity-100 absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-xs font-semibold text-neutral-900 shadow-sm backdrop-blur">
-            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-            {venue.rating ?? 0.0}
-          </div>
+        {/* Instant book badge */}
+        {venue?.instabook && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge className="absolute left-3 top-3" variant="instabook">
+                  <Zap className="size-3 fill-primary text-primary" />
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Instant book</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
 
         {/* Hover action toolbar */}
@@ -119,7 +130,7 @@ export function VenueCard({
                 onClick={() => onView?.(venue)}
                 className="h-7 w-7 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
-                <Eye className="h-3.5 w-3.5" />
+                <Eye className="h-4 w-4" />
               </Button>
             )}
             {onEdit && typeof onEdit === "function" && (
@@ -129,7 +140,7 @@ export function VenueCard({
                 onClick={() => onEdit?.(venue)}
                 className="h-7 w-7 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-4 w-4" />
               </Button>
             )}
             {onDelete && typeof onDelete === "function" && (
@@ -139,7 +150,7 @@ export function VenueCard({
                 onClick={() => onDelete?.(venue)}
                 className="h-7 w-7 rounded-full text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
               >
-                <Trash className="h-3.5 w-3.5" />
+                <Trash className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -147,73 +158,82 @@ export function VenueCard({
       </div>
 
       {/* Content Section */}
-      <CardContent className="flex flex-col p-5">
-        {/* Title */}
-        <div className="mb-1.5">
-          {isOwnerView ? (
-            <Link
-              href={`/venues/${venue.slug}`}
-              className="text-lg font-semibold leading-snug tracking-tight text-foreground line-clamp-1 hover:underline"
-            >
-              {venue.name}
-            </Link>
-          ) : (
-            <h3 className="text-lg font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
-              {venue.name}
-            </h3>
+      <CardContent className="flex flex-1 flex-col gap-2 p-4">
+        <div className="flex flex-col gap-1.5">
+          {/* Title */}
+          <div className="flex items-start justify-between gap-2">
+            {isOwnerView ? (
+              <Link
+                href={`/venues/${venue?.slug}`}
+                className="line-clamp-1 text-[17px] font-semibold leading-tight tracking-tight text-foreground"
+              >
+                {venue?.name}
+              </Link>
+            ) : (
+              <h2 className="line-clamp-1 text-[17px] font-semibold leading-tight tracking-tight text-foreground">
+                {venue?.name}
+              </h2>
+            )}
+            {venue?.venue_type && (
+              <Badge variant="venue_type">{capitalizeFirstLetter(venue?.venue_type)}</Badge>
+            )}
+          </div>
+          {/* Description */}
+          {venue?.description && (
+            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-1">
+              {venue.description}
+            </p>
           )}
         </div>
 
         {/* Location */}
-        <div className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="line-clamp-1">{addr?.street ?? "Location unavailable"}</span>
-        </div>
-
-        {venue.rating && (
-          <div className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1">
-            <Star className="h-3 w-3 fill-green-600 text-green-600" />
-            <span className="text-sm font-medium">{venue.rating}</span>
+        <div className="flex items-center justify-between gap-1.5 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-4 w-4" />
+            <span className="line-clamp-1">{addr?.street ?? "Location unavailable"}</span>
           </div>
-        )}
 
-        {/* Description */}
-        {venue.description && (
-          <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-1">
-            {venue.description}
-          </p>
-        )}
+          {venue?.rating && (
+            <div className="flex items-center gap-1">
+              <Rating readOnly value={venue?.rating || 0} />
+            </div>
+          )}
+        </div>
 
         {/* Meta row: capacity / rate / min hours */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-          {venue.capacity && (
-            <div className="flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" />
-              <span>Up to {venue.capacity}</span>
+          {venue?.capacity && (
+            <div className="flex items-center gap-1.5 border rounded-full px-2 py-1 text-xs">
+              <Users className="h-4 w-4" />
+              <span>Up to {venue?.capacity}</span>
             </div>
           )}
-          {venue.hourly_rate && (
-            <div className="flex items-center gap-1.5 font-medium text-foreground">
-              <DollarSign className="h-3.5 w-3.5" />
+          {venue?.hourly_rate && (
+            <div className="flex items-center gap-1.5 font-medium text-muted-foreground border rounded-full px-2 py-1 text-xs">
+              <DollarSign className="h-4 w-4" />
               <span>
-                {venue.hourly_rate}
-                <span className="font-normal text-muted-foreground">/hr</span>
+                {venue?.hourly_rate}
+                <span className="font-normal">/hr</span>
               </span>
             </div>
           )}
-          {venue.min_hours && (
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Min {venue.min_hours}h</span>
+          {venue?.min_hours && (
+            <div className="flex items-center gap-1.5  border rounded-full px-2 py-1 text-xs">
+              <Clock className="h-4 w-4" />
+              <span>Min {venue?.min_hours}h</span>
             </div>
           )}
         </div>
 
         {/* Owner Footer */}
         {isOwnerView && (
-          <div className="mt-4 flex items-center justify-between gap-3 border-t pt-3">
+          <div className="mt-0 flex items-center justify-between gap-3 border-t pt-3">
             <a
-              href={`/api/cronofy/start-connect?venue_id=${venue.id}`}
+              href={
+                calendarOk
+                  ? `/venues/${venue.id}/calendar-sync`
+                  : `/api/cronofy/start-connect?venue_id=${venue.id}`
+              }
               target="_top"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
