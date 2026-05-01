@@ -21,6 +21,49 @@ export function getTimeSlotOptions(): string[] {
   return out
 }
 
+export function getVenueTimeSlotOptions(hoursOfOperation?: string | null): string[] {
+  if (!hoursOfOperation) return getTimeSlotOptions()
+
+  function parseTimeStr(str: string) {
+    const s = str.trim()
+    const match = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i)
+    if (!match) return null
+    let h = parseInt(match[1], 10)
+    const m = match[2] ? parseInt(match[2], 10) : 0
+    const period = match[3].toUpperCase()
+    if (period === "PM" && h !== 12) h += 12
+    if (period === "AM" && h === 12) h = 0
+    return h * 60 + m
+  }
+
+  const parts = hoursOfOperation.split("-")
+  if (parts.length === 2) {
+    let startMins = parseTimeStr(parts[0])
+    let endMins = parseTimeStr(parts[1])
+    if (startMins !== null && endMins !== null) {
+      if (endMins < startMins) endMins += 24 * 60 // wrap around
+      const out: string[] = []
+      for (let mins = startMins; mins <= endMins; mins += 30) {
+        let h = Math.floor(mins / 60) % 24
+        let m = mins % 60
+        const d = new Date(2000, 0, 1, h, m)
+        // Ensure "0:00" mapping matches logic if needed, 
+        // toLocaleTimeString handles well.
+        out.push(
+          d.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        )
+      }
+      return out
+    }
+  }
+
+  return getTimeSlotOptions()
+}
+
 /** DB `venue_type` values + display labels for filters */
 export const VENUE_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "all", label: "All Types" },

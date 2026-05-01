@@ -4,12 +4,13 @@ import React from "react"
 type Props = {
   children: React.ReactNode
   className?: string
-  variant?: "default" | "secondary"
+  variant?: "default" | "primary" | "secondary"
 }
 
 const IconWrapper = ({ children, className, variant = "default" }: Props) => {
   const variantClasses = {
     default: "",
+    primary: "bg-secondary text-primary border-none",
     secondary: "bg-secondary border-none",
   }
   return (

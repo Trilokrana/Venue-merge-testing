@@ -5,8 +5,9 @@ import { CalendarDays, ChevronDown, Info, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 
-import { getTimeSlotOptions } from "@/app/listings/data"
+import { getVenueTimeSlotOptions } from "@/app/listings/data"
 import { DateTimePickerPanel } from "@/components/listings/date-time-picker-panel"
+import { BookingFormSheet } from "@/components/listings/booking-form-sheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -35,9 +36,8 @@ function slotToMinutes(slot: string): number {
 type BookedRange = { start: string; end: string; title?: string; type?: string }
 
 /** Build a map of 30-min slot string → display label for slots that overlap booked ranges. */
-function computeBusySlots(date: Date, bookedRanges: BookedRange[]): Map<string, string> {
+function computeBusySlots(date: Date, bookedRanges: BookedRange[], slots: string[]): Map<string, string> {
   if (!bookedRanges.length) return new Map()
-  const slots = getTimeSlotOptions()
   const busy = new Map<string, string>()
 
   for (const slot of slots) {
@@ -58,15 +58,13 @@ function computeBusySlots(date: Date, bookedRanges: BookedRange[]): Map<string, 
   return busy
 }
 
-const SLOTS = getTimeSlotOptions()
-
-function slotIndex(t: string) {
-  return SLOTS.indexOf(t)
+function slotIndex(t: string, slots: string[]) {
+  return slots.indexOf(t)
 }
 
-function hoursBetween(start: string, end: string) {
-  const a = slotIndex(start)
-  const b = slotIndex(end)
+function hoursBetween(start: string, end: string, slots: string[]) {
+  const a = slotIndex(start, slots)
+  const b = slotIndex(end, slots)
   if (a < 0 || b < 0 || b <= a) return 0
   return ((b - a) * 30) / 60
 }
@@ -79,22 +77,30 @@ const GUEST_BUCKETS = [
   { label: "100+ people", value: "200", multiplier: 3.4 },
 ] as const
 
+import type { VenueWithRelations } from "@/lib/venues/types"
+
 type Props = {
-  venueId: string
-  hourlyRate: number | null
-  minHours: number | null
-  capacity: number | null
+  venue: VenueWithRelations
   className?: string
 }
 
-export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, className }: Props) {
+export function VenueBookingWidget({ venue, className }: Props) {
   const router = useRouter()
+  const venueId = venue.id
+  const hourlyRate = venue.hourly_rate
+  const minHours = venue.min_hours
+  const capacity = venue.capacity
+  const hoursOfOperation = venue.hours_of_operation
+
   const [date, setDate] = React.useState<Date | undefined>(undefined)
   const [pickerOpen, setPickerOpen] = React.useState(false)
+  const [sheetOpen, setSheetOpen] = React.useState(false)
   const [startTime, setStartTime] = React.useState("")
   const [endTime, setEndTime] = React.useState("")
   const [guests, setGuests] = React.useState("")
   const [busySlots, setBusySlots] = React.useState<Map<string, string>>(new Map())
+
+  const SLOTS = React.useMemo(() => getVenueTimeSlotOptions(hoursOfOperation), [hoursOfOperation])
 
   React.useEffect(() => {
     if (!date) {
@@ -113,7 +119,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
           return
         }
         const data: { bookedRanges?: BookedRange[] } = await r.json()
-        setBusySlots(computeBusySlots(selectedDate, data.bookedRanges ?? []))
+        setBusySlots(computeBusySlots(selectedDate, data.bookedRanges ?? [], SLOTS))
       })
       .catch(() => {
         if (!cancelled) setBusySlots(new Map(SLOTS.map((s) => [s, "Unavailable"])))
@@ -122,9 +128,9 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
     return () => {
       cancelled = true
     }
-  }, [date, venueId])
+  }, [date, venueId, SLOTS])
 
-  const hours = React.useMemo(() => hoursBetween(startTime, endTime), [startTime, endTime])
+  const hours = React.useMemo(() => hoursBetween(startTime, endTime, SLOTS), [startTime, endTime, SLOTS])
   const effectiveHours = Math.max(hours, minHours ?? 0)
   const hasDateTime = Boolean(date && startTime && endTime && hours > 0)
   const hasGuests = Boolean(guests)
@@ -132,15 +138,15 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
   /** True if any 30-min step between start and end falls on a booked slot (prevents spanning through busy time). */
   const selectionCrossesBooked = React.useMemo(() => {
     if (!date || !startTime || !endTime) return false
-    const a = slotIndex(startTime)
-    const b = slotIndex(endTime)
+    const a = slotIndex(startTime, SLOTS)
+    const b = slotIndex(endTime, SLOTS)
     if (a < 0 || b < 0 || b <= a) return false
     for (let i = a; i < b; i++) {
       if (busySlots.has(SLOTS[i])) return true
     }
     return false
-  }, [date, startTime, endTime, busySlots])
-
+  }, [date, startTime, endTime, busySlots, SLOTS])
+  
   const readyToBook = hasDateTime && hasGuests && !selectionCrossesBooked
 
   const baseRate = hourlyRate ?? 0
@@ -214,6 +220,7 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
                 onStartTimeChange={setStartTime}
                 onEndTimeChange={setEndTime}
                 busySlots={busySlots}
+                timeOptions={SLOTS}
                 calendarProps={{
                   disabled: (date) => isBefore(date, startOfDay(new Date())),
                 }}
@@ -316,21 +323,25 @@ export function VenueBookingWidget({ venueId, hourlyRate, minHours, capacity, cl
 
             <Button
               type="button"
-              onClick={() => {
-                const q = new URLSearchParams({
-                  date: date?.toISOString() || "",
-                  startTime,
-                  endTime,
-                  guests,
-                  hours: effectiveHours.toString(),
-                })
-                router.push(`/request-booking/${venueId}?${q.toString()}`)
-              }}
+              onClick={() => setSheetOpen(true)}
               className="w-full"
               disabled={displayedHourlyRate == null}
             >
               {displayedHourlyRate != null ? "Reserve" : "Request availability"}
             </Button>
+
+            {date && startTime && endTime && (
+              <BookingFormSheet
+                venue={venue}
+                date={date}
+                startTime={startTime}
+                endTime={endTime}
+                guests={guests}
+                effectiveHours={effectiveHours}
+                open={sheetOpen}
+                onOpenChange={setSheetOpen}
+              />
+            )}
 
             <p className="text-center text-xs text-muted-foreground">
               Cancel for free within 24 hours · High acceptance rate

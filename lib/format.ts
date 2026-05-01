@@ -81,6 +81,28 @@ export function formatCurrencyINR(amount: number) {
   }).format(amount)
 }
 
+type FormatCurrencyOptions = {
+  locale?: string
+  currency?: string
+} & Intl.NumberFormatOptions
+
+export function formatCurrency(
+  amount: number,
+  options: FormatCurrencyOptions = {}
+) {
+  const {
+    locale = "en-US",
+    currency = "USD",
+    ...rest
+  } = options
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    ...rest,
+  }).format(amount)
+}
+
 export function capitalizeFirstLetter(input: string): string {
   if (!input) return ""
 
@@ -89,4 +111,30 @@ export function capitalizeFirstLetter(input: string): string {
     .filter(Boolean) // drop empty segments from consecutive separators
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ")
+}
+
+export const getDayRange = (timestamp: string) => {
+  const start = new Date(parseInt(timestamp))
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  }
+}
+
+export const getDayRangeUTC = (date: Date) => {
+  const start = new Date(date)
+  start.setUTCHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + 1)
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  }
 }

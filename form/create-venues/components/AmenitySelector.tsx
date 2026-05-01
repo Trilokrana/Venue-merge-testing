@@ -186,7 +186,7 @@ function AmenitySelector({ selectedAmenities, onChange }: AmenitySelectorProps) 
 
           return (
             <div key={group.id}>
-              <div className="flex w-full items-center justify-between gap-2 px-3 py-2 bg-gray-50">
+              <div className="flex w-full items-center justify-between gap-2 px-3 py-2">
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.id)}
@@ -225,7 +225,7 @@ function AmenitySelector({ selectedAmenities, onChange }: AmenitySelectorProps) 
                     return (
                       <label
                         key={item.id}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
                       >
                         <Checkbox
                           checked={isChecked}

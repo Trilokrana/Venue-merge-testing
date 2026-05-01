@@ -4,9 +4,9 @@ import { getUser, updateUser, type UpdateUserPayload } from "@/lib/user/client"
 import { User } from "@supabase/supabase-js"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-type UserType = "venue_owner" | "rentee" | null
+export type UserType = "venue_owner" | "rentee" | null
 
-interface UseUserResult {
+export interface UseUserResult {
   user: User | null
   userType: UserType
   displayName: string | null
@@ -19,7 +19,7 @@ export function useUser() {
     queryFn: getUser,
     staleTime: Infinity, // Never refetch automatically (unless you tell it to)
     retry: false, // Don't retry if 401 (not logged in)
-    refetchOnWindowFocus: "always",
+    // refetchOnWindowFocus: "always",
   })
 }
 

@@ -18,18 +18,22 @@ export const ConfirmDialogProvider = ({ children, defaultOptions }: Props) => {
         cancelText: "Cancel",
         confirmButton: {
           variant: "default",
+          size: "lg",
+          className: "px-4",
         },
         cancelButton: {
           variant: "outline",
+          size: "lg",
+          className: "px-4",
         },
         alertDialogContent: {
-          className: "sm:max-w-[425px] rounded-lg",
+          className: "sm:min-w-xl rounded-lg",
         },
         alertDialogOverlay: {
-          className: "bg-gray-500/50",
+          className: "bg-card/80 backdrop-blur-xl",
         },
         alertDialogFooter: {
-          className: "gap-2",
+          className: "gap-2 bg-transparent p-0 pt-2",
         },
         ...defaultOptions,
       }}

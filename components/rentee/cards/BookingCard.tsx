@@ -7,8 +7,11 @@ import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { VenueAddress, VenueImage } from "@/lib/venues/types"
 import { format } from "date-fns"
-import { Calendar, Clock, MapPin, Star } from "lucide-react"
+import { Calendar, Clock, MapPin, Star, CreditCard } from "lucide-react"
 import Image from "next/image"
+import { useState } from "react"
+import { CompletePaymentModal } from "@/components/rentee/modals/CompletePaymentModal"
+import { Button } from "@/components/ui/button"
 
 /* -------------------------------------------------------------------------- */
 /*  Status styling                                                             */
@@ -43,6 +46,14 @@ interface BookingCardProps {
 }
 
 const BookingCard = ({ booking, className, listView = false }: BookingCardProps) => {
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const isAwaitingPayment = booking.status === "awaiting_payment"
+
+  const getDisplayStatus = (status: BookingStatus) => {
+    if (isAwaitingPayment) return "awaiting payment"
+    return status
+  }
+
   const featuredImage: VenueImage | null = Array.isArray(booking.venue.images)
     ? (booking.venue.images.find((img) => img?.is_featured) ?? booking.venue.images[0] ?? null)
     : null
@@ -65,17 +76,17 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
-      {capitalizeFirstLetter(booking.status)}
+      {getDisplayStatus(booking.status)}
     </span>
   )
 
-  const RatingBadge = booking.venue.rating != null && (
-    <span className="inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
-      <Rating readOnly value={booking.venue.rating || 0} />
-      {Number(booking.venue.rating).toFixed(2)}
-    </span>
-  )
-
+  const RatingBadge =
+    booking.venue.rating != null && (
+      <span className="inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+        <Star className="size-3 fill-amber-500 text-amber-500" />
+        {Number(booking.venue.rating).toFixed(1)}
+      </span>
+    )
   const ImageBlock = (
     <div
       className={cn(
@@ -193,22 +204,29 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
             )}
 
             {/* Pricing */}
-            <div className="flex flex-col items-end text-right">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
-              <span className="text-xl font-semibold tracking-tight text-foreground">
-                ${Number(booking.total_amount ?? 0).toLocaleString()}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">USD</span>
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {booking.total_hours}h × ${booking.hourly_rate}/hr
-              </span>
+            <div className="flex flex-col items-end text-right gap-2">
+              <div className="flex flex-col items-end">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
+                <span className="text-xl font-semibold tracking-tight text-foreground">
+                  ${Number(booking.total_amount ?? 0).toLocaleString()}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">USD</span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {booking.total_hours}h × ${booking.hourly_rate}/hr
+                </span>
+              </div>
+              {isAwaitingPayment && (
+                <Button size="sm" className="mt-2 w-full sm:w-auto" onClick={() => setPaymentModalOpen(true)}>
+                  Complete Payment
+                </Button>
+              )}
             </div>
           </div>
         ) : (
           <>
             {/* Date + Time row (grid view) */}
             {(dateLabel || timeLabel) && (
-              <div className="relative flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg rounded-tr-none border border-border/60 bg-muted/40 px-3 py-2.5">
+              <div className="relative flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
                 {dateLabel && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="size-3.5 text-muted-foreground" />
@@ -245,9 +263,21 @@ const BookingCard = ({ booking, className, listView = false }: BookingCardProps)
                 )}
               </div>
             </div>
+
+            {isAwaitingPayment && (
+              <Button className="mt-4 w-full" onClick={() => setPaymentModalOpen(true)}>
+                Complete Payment
+              </Button>
+            )}
           </>
         )}
       </CardContent>
+
+      <CompletePaymentModal 
+        booking={booking} 
+        open={paymentModalOpen} 
+        onOpenChange={setPaymentModalOpen} 
+      />
     </Card>
   )
 }

@@ -28,6 +28,7 @@ type Props = {
   onEndTimeChange: (t: string) => void
   /** Slot string → display label for busy slots (e.g. "Maintenance", "Booked") */
   busySlots?: Map<string, string>
+  timeOptions?: string[]
   calendarProps?: Omit<DayPickerProps, "mode" | "selected" | "onSelect"> & {
     buttonVariant?: React.ComponentProps<typeof Button>["variant"]
   }
@@ -41,15 +42,16 @@ export function DateTimePickerPanel({
   onStartTimeChange,
   onEndTimeChange,
   busySlots,
+  timeOptions = TIME_OPTIONS,
   calendarProps = {},
 }: Props) {
   const durationHours = React.useMemo(() => {
-    const si = TIME_OPTIONS.indexOf(startTime)
-    const ei = TIME_OPTIONS.indexOf(endTime)
+    const si = timeOptions.indexOf(startTime)
+    const ei = timeOptions.indexOf(endTime)
     if (si < 0 || ei < 0 || ei <= si) return null
     const minutes = (ei - si) * 30
     return (minutes / 60).toFixed(1)
-  }, [startTime, endTime])
+  }, [startTime, endTime, timeOptions])
 
   return (
     <div className="flex flex-col gap-0 md:flex-row">
@@ -85,7 +87,7 @@ export function DateTimePickerPanel({
               <SelectValue placeholder="Start time" />
             </SelectTrigger>
             <SelectContent className="rounded-lg border-primary/25">
-              {TIME_OPTIONS.map((t) => {
+              {timeOptions.map((t) => {
                 const busyLabel = busySlots?.get(t)
                 return (
                   <SelectItem key={t} value={t} disabled={!!busyLabel}>
@@ -109,7 +111,7 @@ export function DateTimePickerPanel({
               <SelectValue placeholder="End time" />
             </SelectTrigger>
             <SelectContent className="rounded-lg">
-              {TIME_OPTIONS.map((t) => {
+              {timeOptions.map((t) => {
                 const busyLabel = busySlots?.get(t)
                 return (
                   <SelectItem key={`e-${t}`} value={t} disabled={!!busyLabel}>

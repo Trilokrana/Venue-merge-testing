@@ -25,6 +25,9 @@ const badgeVariants = cva(
 
         pending: "bg-yellow-200 text-yellow-900 border border-yellow-300 [a]:hover:bg-yellow-200",
 
+        awaiting_payment:
+          "bg-yellow-300 text-yellow-900 border border-yellow-300 [a]:hover:bg-yellow-200",
+
         confirmed: "bg-green-200 text-green-900 border border-green-300 [a]:hover:bg-green-200",
 
         cancelled_by_guest: "bg-red-200 text-red-900 border border-red-300 [a]:hover:bg-red-200",

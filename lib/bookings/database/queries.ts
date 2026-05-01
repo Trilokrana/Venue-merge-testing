@@ -1,6 +1,7 @@
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, normalizePagination } from "@/lib/pagination"
 import { createServiceSupabaseClient } from "@/lib/supabase/service-client"
 import { BookingFilters } from "@/schemas/booking.schema"
+import { getDayRange } from "@/lib/format"
 
 export async function getBookingsByOwnerId(ownerId: string, filters?: BookingFilters) {
   const supabase = createServiceSupabaseClient()
@@ -47,28 +48,22 @@ export async function getBookingsByOwnerId(ownerId: string, filters?: BookingFil
     query = query.eq("status", filters.status)
   }
 
+  // CREATED_AT
   if (filters?.created_at) {
-    const start = new Date(parseInt(filters.created_at))
-    const end = new Date(parseInt(filters.created_at))
-    end.setDate(end.getDate() + 1)
-    // query = query.gte("created_at", start.toISOString()).lt("created_at", end.toISOString())
-    query = query.gte("created_at", start.toISOString())
+    const { start, end } = getDayRange(filters.created_at)
+    query = query.gte("created_at", start).lt("created_at", end)
   }
 
+  // START_AT
   if (filters?.start_at) {
-    const start = new Date(parseInt(filters.start_at))
-    const end = new Date(parseInt(filters.start_at))
-    end.setDate(end.getDate() + 1)
-    // query = query.gte("start_at", start.toISOString()).lt("start_at", end.toISOString())
-    query = query.gte("start_at", start.toISOString())
+    const { start, end } = getDayRange(filters.start_at)
+    query = query.gte("start_at", start).lt("start_at", end)
   }
 
+  // END_AT (FIXED ISSUE HERE)
   if (filters?.end_at) {
-    const start = new Date(parseInt(filters.end_at))
-    const end = new Date(parseInt(filters.end_at))
-    end.setDate(end.getDate() + 1)
-    // query = query.gte("end_at", start.toISOString()).lt("end_at", end.toISOString())
-    query = query.gte("end_at", start.toISOString())
+    const { start, end } = getDayRange(filters.end_at)
+    query = query.gte("end_at", start).lt("end_at", end)
   }
 
   // ---------- Sorting ----------
@@ -126,8 +121,10 @@ export async function getBookingsByRenteeId(renteeId: string, filters?: BookingF
     pageSize: filters?.perPage || DEFAULT_PAGE_SIZE,
   })
 
-  let query = supabase.from("bookings").select(
-    `
+  let query = supabase
+    .from("bookings")
+    .select(
+      `
         *,
         venue:venues!bookings_venue_id_fkey!inner (
           *,
@@ -145,39 +142,43 @@ export async function getBookingsByRenteeId(renteeId: string, filters?: BookingF
           account_type
         )
         `,
-    { count: "exact" }
-  )
-  // .eq("rentee_id", renteeId)
+      { count: "exact" }
+    )
+    .eq("rentee_id", renteeId)
+
+  const now = new Date().toISOString()
 
   // ---------- Filters ----------
+
+  // 🔍 Search (venue name + description)
   if (filters?.query?.trim()) {
     const search = filters.query.trim().replace(/\s+/g, " ")
     query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`, {
       foreignTable: "venues",
     })
   }
-  console.log("🚀 ~ getBookingsByRenteeId ~ filters?.status:", filters?.status)
+
+  // Status
   if (filters?.status) {
     query = query.eq("status", filters.status)
   }
 
+  // Start Date (exact day filter)
   if (filters?.start_at) {
-    const start = new Date(parseInt(filters.start_at))
-    start.setHours(0, 0, 0, 0) // snap to start of day
-
-    const end = new Date(start)
-    end.setDate(end.getDate() + 1) // next day at 00:00:00
-
-    query = query.gte("start_at", start.toISOString()).lt("start_at", end.toISOString())
+    const { start, end } = getDayRange(filters.start_at)
+    query = query.gte("start_at", start).lt("start_at", end)
   }
+
   if (filters?.venue_type) {
     query = query.eq("venue.venue_type", filters.venue_type)
   }
+
+  // Event Status (clean + predictable)
   if (filters?.event_status) {
     if (filters.event_status === "upcoming") {
-      query = query.gte("start_at", new Date().toISOString())
+      query = query.gte("start_at", now)
     } else if (filters.event_status === "past") {
-      query = query.lt("start_at", new Date().toISOString())
+      query = query.lt("start_at", now)
     }
   }
   // ---------- Ordering ----------

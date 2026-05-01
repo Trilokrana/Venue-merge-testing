@@ -352,12 +352,12 @@ export function VenueDetailView({ venue, isOwner = false }: Props) {
             <CardContent>
               <div>
                 {isOwner ? (
-                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-3">
+                  <div className="space-y-3">
                     <p className="text-sm font-semibold text-foreground">This is your venue</p>
                     <p className="text-sm text-muted-foreground">
                       You can manage settings, connect your calendar, and view incoming bookings.
                     </p>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-4">
                       <Button asChild className="w-full">
                         <Link href={`/venues/${venue.id}/calendar-sync`}>
                           <Settings className="mr-2 size-4" />
@@ -372,10 +372,7 @@ export function VenueDetailView({ venue, isOwner = false }: Props) {
                 ) : (
                   <>
                     <VenueBookingWidget
-                      venueId={venue.id}
-                      hourlyRate={venue.hourly_rate}
-                      minHours={venue.min_hours}
-                      capacity={venue.capacity}
+                      venue={venue}
                       className="rounded-none"
                     />
                     {venue.phone?.[0] ? (

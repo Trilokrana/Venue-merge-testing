@@ -1,4 +1,5 @@
 "use client"
+import Logo from "@/components/common/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FieldDescription, FieldSeparator } from "@/components/ui/field"
@@ -170,13 +171,7 @@ const SignupForm = ({}: SignFormProps) => {
               className="flex flex-col gap-2 sm:gap-4"
             >
               <div className="flex flex-col items-center gap-2 text-center">
-                <Image
-                  src="/images/logo.png"
-                  alt="Logo"
-                  width={100}
-                  height={100}
-                  className="w-10 h-10 rounded-md"
-                />
+                <Logo />
                 <h1 className="text-2xl font-bold">Create your account</h1>
                 <p className="text-muted-foreground text-xs">
                   Enter your email below to create your account

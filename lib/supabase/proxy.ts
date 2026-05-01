@@ -19,7 +19,7 @@ function isSessionMissingAuthError(error: unknown): boolean {
 }
 
 /** Paths that should not force a redirect to /login when unauthenticated. */
-function isPublicPath(pathname: string): boolean {
+export function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true
   if (pathname.startsWith("/listings")) return true
   if (pathname.startsWith("/request-booking")) return true

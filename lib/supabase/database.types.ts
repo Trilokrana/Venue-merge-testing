@@ -886,7 +886,7 @@ export type Database = {
     }
     Enums: {
       account_type: "venue_owner" | "rentee"
-      booking_status: "pending" | "confirmed" | "cancelled_by_guest" | "cancelled_by_owner"
+      booking_status: "pending" | "confirmed" | "cancelled_by_guest" | "cancelled_by_owner" | "awaiting_payment"
       calendar_sync: "not_connected" | "connected"
       indoor_outdoor: "indoor" | "outdoor" | "both"
       subscription_status:
@@ -1045,7 +1045,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["venue_owner", "rentee"],
-      booking_status: ["pending", "confirmed", "cancelled_by_guest", "cancelled_by_owner"],
+      booking_status: ["pending", "confirmed", "cancelled_by_guest", "cancelled_by_owner", "awaiting_payment"],
       indoor_outdoor: ["indoor", "outdoor", "both"],
       subscription_status: [
         "active",

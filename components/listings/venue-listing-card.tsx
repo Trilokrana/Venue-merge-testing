@@ -10,20 +10,12 @@ import { capitalizeFirstLetter } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ListingsWithRelations } from "@/schemas/listings.schema"
 import { format } from "date-fns"
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Info,
-  MapPin,
-  Star,
-  Zap,
-} from "lucide-react"
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Info, MapPin, Zap } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import * as React from "react"
 import { Badge } from "../ui/badge"
+import { Rating } from "../ui/rating"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
 
 type Props = {
@@ -80,10 +72,9 @@ export function VenueListingCard({ venue, className, isOwnerView = false }: Prop
   const calendarOk = venue.calendar_sync === "connected"
 
   const dateLabel = venue.created_at ? format(venue.created_at, "EEE, MMM d, yyyy") : null
-  const timeLabel =
-    venue.created_at && venue.created_at
-      ? `${format(venue.created_at, "h:mm a")} – ${format(venue.created_at, "h:mm a")}`
-      : null
+  const timeLabel = venue.hours_of_operation 
+    ? venue.hours_of_operation 
+    : "Ask the host"
 
   return (
     <article
@@ -143,17 +134,6 @@ export function VenueListingCard({ venue, className, isOwnerView = false }: Prop
             </TooltipProvider>
           )}
 
-          {/* Rating pill */}
-          {venue.rating != null && (
-            <Badge
-              className="absolute right-3 top-3 gap-1 border-transparent bg-background/95 px-2 py-1 text-foreground shadow-sm backdrop-blur"
-              variant="outline"
-            >
-              <Star className="size-3 fill-amber-400 text-amber-400" />
-              {venue.rating.toFixed(2)}
-            </Badge>
-          )}
-
           {canSlide && (
             <>
               <button
@@ -199,15 +179,22 @@ export function VenueListingCard({ venue, className, isOwnerView = false }: Prop
             )}
           </div>
 
-          {/* Location */}
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" />
-            <span className="line-clamp-1">{subtitle || "Location unavailable"}</span>
+          <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground">
+            {/* Location */}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="size-3.5 shrink-0" />
+              <span className="line-clamp-1">{subtitle || "Location unavailable"}</span>
+            </div>
+            {venue.rating && (
+              <div className="flex items-center gap-1">
+                <Rating readOnly value={venue.rating || 0} />
+              </div>
+            )}
           </div>
 
           {/* Info block */}
           {(dateLabel || timeLabel) && (
-            <div className="flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-4 py-3">
+            <div className="flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2 py-2">
               {dateLabel && venue?.description && (
                 <div className="flex items-start gap-2 text-sm">
                   <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />

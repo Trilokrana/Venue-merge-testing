@@ -1,13 +1,12 @@
 "use client"
 
-import Link from "next/link"
-import { useEffect, useState, useCallback } from "react"
 import clsx from "clsx"
 import { ArrowUp, Menu } from "lucide-react"
+import Link from "next/link"
+import { useCallback, useEffect, useState } from "react"
 
+import UserProfile from "@/components/common/user-profile"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -16,9 +15,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUser, UseUserResult } from "@/hooks/use-user"
+import { cn } from "@/lib/utils"
 import { User } from "@supabase/supabase-js"
-import { useUser } from "@/hooks/use-user"
-
+import { usePathname } from "next/navigation"
+import Logo from "../common/logo"
 
 type NavLink = {
   label: string
@@ -49,16 +52,16 @@ function useScrolled(threshold: number = SCROLL_THRESHOLD) {
   return scrolled
 }
 
-function Logo() {
-  return (
-    <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-        L
-      </div>
-      <span className="text-lg font-semibold tracking-tight">Logo</span>
-    </Link>
-  )
-}
+// function Logo() {
+//   return (
+//     <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+//       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+//         L
+//       </div>
+//       <span className="text-lg font-semibold tracking-tight">Logo</span>
+//     </Link>
+//   )
+// }
 
 function DesktopNavItem({ link }: { link: NavLink }) {
   const hasChildren = Array.isArray(link.items) && link.items.length > 0
@@ -118,15 +121,28 @@ function DesktopNav() {
   )
 }
 
-function AuthButtons() {
+export function AuthButtons({
+  showGetStarted = true,
+  showSignIn = true,
+  className,
+}: {
+  showGetStarted?: boolean
+  showSignIn?: boolean
+  className?: string
+}) {
+  const pathname = usePathname()
   return (
-    <div className="hidden items-center gap-2 md:flex">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/login">Sign In</Link>
-      </Button>
-      <Button asChild size="sm" className="shadow-sm">
-        <Link href="/register">Get Started</Link>
-      </Button>
+    <div className={cn("hidden items-center gap-2 md:flex", className)}>
+      {showSignIn && (
+        <Button size="sm" asChild variant="outline">
+          <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign In</Link>
+        </Button>
+      )}
+      {showGetStarted && (
+        <Button size="sm" asChild className="shadow-sm">
+          <Link href="/register">Get Started</Link>
+        </Button>
+      )}
     </div>
   )
 }
@@ -243,7 +259,13 @@ export function GlobalHeader() {
 
           <div className="flex items-center gap-6">
             <DesktopNav />
-            {isLoading ? <AuthButtonsSkeleton /> : !user ? <AuthButtons /> : null}
+            {isLoading ? (
+              <AuthButtonsSkeleton />
+            ) : !user ? (
+              <AuthButtons />
+            ) : (
+              <UserProfile user={data as unknown as UseUserResult} />
+            )}
             <MobileNav user={user} isLoading={isLoading} />
           </div>
         </div>

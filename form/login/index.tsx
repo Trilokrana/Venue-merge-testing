@@ -1,5 +1,6 @@
 "use client"
 
+import Logo from "@/components/common/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FieldDescription, FieldSeparator } from "@/components/ui/field"
@@ -14,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -30,7 +32,7 @@ function postLoginPath(searchParams: ReturnType<typeof useSearchParams>) {
   return "/dashboard"
 }
 
-const LoginForm = ({ }: LoginFormProps) => {
+const LoginForm = ({}: LoginFormProps) => {
   const supabase = getSupabaseBrowserClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -40,7 +42,7 @@ const LoginForm = ({ }: LoginFormProps) => {
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: "", password: "" },
   })
-
+  const queryClient = useQueryClient()
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
     try {
@@ -66,8 +68,9 @@ const LoginForm = ({ }: LoginFormProps) => {
           const defaultRole = "rentee"
           const fullName = user.user_metadata?.first_name
             ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim()
-            : null;
-          const displayName = user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
+            : null
+          const displayName =
+            user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
 
           const photoUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
 
@@ -88,6 +91,9 @@ const LoginForm = ({ }: LoginFormProps) => {
       }
       // ** LOGIN SUCCESS End Here **
 
+      queryClient.invalidateQueries({
+        queryKey: ["user"],
+      }) // invalidate user query to get the latest user data
       toast.success("Logged in successfully")
       router.replace(postLoginPath(searchParams))
       router.refresh()
@@ -133,8 +139,9 @@ const LoginForm = ({ }: LoginFormProps) => {
           const defaultRole = "rentee"
           const fullName = user.user_metadata?.first_name
             ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim()
-            : null;
-          const displayName = user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
+            : null
+          const displayName =
+            user.user_metadata?.full_name || user.user_metadata?.name || fullName || null
 
           const photoUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
 
@@ -171,13 +178,7 @@ const LoginForm = ({ }: LoginFormProps) => {
               className="flex flex-col gap-4 sm:gap-6"
             >
               <div className="flex flex-col items-center gap-2 text-center">
-                <Image
-                  src="/images/logo.png"
-                  alt="Logo"
-                  width={100}
-                  height={100}
-                  className="w-10 h-10 rounded-md"
-                />
+                <Logo />
                 <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-muted-foreground text-xs">Login to your Account</p>
               </div>

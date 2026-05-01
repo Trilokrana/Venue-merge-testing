@@ -355,7 +355,7 @@ const OwnerBookingsPage = () => {
         noDataText="No Bookings Found."
         renderExpandedRow={(row) => {
           const currentRow = row.original
-          const isApproved = currentRow.notes?.includes("[OWNER_APPROVED]")
+          const isApproved = currentRow.status === "awaiting_payment"
           return (
             <div
               className="px-4 py-3"
@@ -366,7 +366,7 @@ const OwnerBookingsPage = () => {
                 <div className="flex flex-col gap-3 w-full lg:w-[45%]">
                   <VenueCard className="w-full" venue={currentRow.venue} variant="list" />
 
-                  {currentRow.status === "pending" && !isApproved && (
+                  {currentRow.status === "pending" && (
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -390,7 +390,7 @@ const OwnerBookingsPage = () => {
                     </div>
                   )}
 
-                  {currentRow.status === "pending" && isApproved && (
+                  {currentRow.status === "awaiting_payment" && (
                     <div className="flex items-center justify-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/30 dark:text-yellow-500">
                       <ClockIcon className="size-4" />
                       Awaiting Payment from Guest
@@ -399,7 +399,7 @@ const OwnerBookingsPage = () => {
                 </div>
 
                 {/* Right Column: Guest Information */}
-                <Card className="w-full lg:w-[35%] flex flex-col gap-0 max-h-52.5">
+                <Card className="w-full lg:w-[35%] flex flex-col gap-0 max-h-46">
                   <CardHeader className="pb-4 shrink-0">
                     <CardTitle className="text-base font-semibold">Guest Information</CardTitle>
                   </CardHeader>
@@ -423,7 +423,7 @@ const OwnerBookingsPage = () => {
 
                     {/* Booking Notes */}
                     {currentRow?.notes &&
-                      currentRow.notes.replace("[OWNER_APPROVED]", "").trim() && (
+                       currentRow.notes.trim() && (
                         <>
                           <Separator />
                           <div className="space-y-2">
@@ -431,7 +431,7 @@ const OwnerBookingsPage = () => {
                               Booking Notes
                             </h4>
                             <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                              {currentRow.notes.replace("[OWNER_APPROVED]", "").trim()}
+                               {currentRow.notes.trim()}
                             </p>
                           </div>
                         </>

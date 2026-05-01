@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils"
 import { BookingFilters } from "@/schemas/booking.schema"
 import { LayoutGrid, LayoutList } from "lucide-react"
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import BookingCard from "../cards/BookingCard"
 import { useRenteeBookings } from "../hooks/useRenteeBookings"
+import { useQueryClient } from "@tanstack/react-query"
 
 const DEFAULT_META = {
   page: 1,
@@ -101,6 +102,14 @@ const RenteeBookingsPage = () => {
     [page, perPage, debouncedQuery, start_at, status, venue_type, event_status]
   )
 
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ["rentee-bookings", filters],
+    })
+  }, [queryClient, filters])
+
   const {
     data,
     isLoading: isInitialLoading,
@@ -177,10 +186,10 @@ const RenteeBookingsPage = () => {
                 isRefetching ? "opacity-60" : "opacity-100",
                 !isSidebarOpen && "md:grid-cols-3",
                 view === "list" &&
-                  "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6",
+                "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6",
                 view === "list" &&
-                  !isSidebarOpen &&
-                  "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6"
+                !isSidebarOpen &&
+                "grid grid-cols-1 gap-4 py-2 transition-opacity md:grid-cols-2 md:gap-6"
               )}
             >
               {bookings?.map((booking: BookingWithRelations) => (

@@ -292,28 +292,119 @@ export async function getVenueBookings(venueId: string) {
   return data ?? []
 }
 
+import { sendApprovalEmail } from "@/lib/email"
+
 export async function approveBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = await createSupabaseServerClient()
   const { user } = await requireSession(supabase)
+  const adminSupabase = getSupabaseAdminClient()
+  const bookingClient = adminSupabase ?? supabase
 
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingErr } = await bookingClient
     .from('bookings')
-    .select('id, owner_id, status, notes')
+    .select(`
+      id, owner_id, rentee_id, venue_id, status, total_amount
+    `)
     .eq('id', bookingId)
     .maybeSingle()
 
-  if (!booking) return { success: false, error: 'Booking not found' }
-  if (booking.owner_id !== user.id) return { success: false, error: 'Not authorised' }
-  if (booking.status !== 'pending') return { success: false, error: 'Booking is not pending' }
+  if (bookingErr) {
+    console.error('[approveBooking] booking fetch error', bookingErr)
+    return { success: false, error: 'Could not load booking details' }
+  }
 
-  // Use notes to mark as approved to bypass enum restrictions and wait for renter's payment
-  const newNotes = booking.notes ? `[OWNER_APPROVED]\n${booking.notes}` : '[OWNER_APPROVED]'
-  const { error } = await supabase.from('bookings').update({ notes: newNotes }).eq('id', bookingId)
+  const bookingRecord = booking as {
+    id: string
+    owner_id: string
+    rentee_id: string
+    venue_id: string
+    status: string
+    total_amount: number | null
+  } | null
+
+  if (!bookingRecord) return { success: false, error: 'Booking not found' }
+  if (bookingRecord.owner_id !== user.id) return { success: false, error: 'Not authorised' }
+  if (bookingRecord.status !== 'pending') return { success: false, error: 'Booking is not pending' }
+
+  const [{ data: venueRow, error: venueErr }, authUserResult] = await Promise.all([
+    bookingClient
+      .from('venues')
+      .select('name')
+      .eq('id', bookingRecord.venue_id)
+      .maybeSingle(),
+    adminSupabase
+      ? adminSupabase.auth.admin.getUserById(bookingRecord.rentee_id)
+      : Promise.resolve({ data: { user: null }, error: new Error('Missing SUPABASE_SERVICE_ROLE_KEY') }),
+  ])
+
+  const authUserError = authUserResult?.error
+  if (authUserError) {
+    console.error('[approveBooking] rentee auth lookup error', authUserError)
+  }
+
+  if (venueErr) {
+    console.error('[approveBooking] venue fetch error', venueErr)
+  }
+
+  // Update status to awaiting_payment (industry-standard state machine)
+  const { error } = await bookingClient
+    .from('bookings')
+    .update({ status: 'awaiting_payment' })
+    .eq('id', bookingId)
 
   if (error) {
     console.error('[approveBooking] error', error)
     return { success: false, error: 'Could not approve booking' }
   }
+  
+  // Send email to Rentee
+  try {
+      let renteeEmail = authUserResult?.data?.user?.email ?? null
+      const venueName = venueRow?.name
+      
+      console.log('[approveBooking] Attempting to send approval email', {
+        bookingId,
+        renteeId: bookingRecord.rentee_id,
+        authEmailFound: !!renteeEmail,
+        renteeEmail: renteeEmail ? renteeEmail.substring(0, 5) + '***' : 'NOT_FOUND'
+      })
+      
+      // Fallback: try public.users table if auth email not found
+      if (!renteeEmail) {
+        console.log('[approveBooking] Auth email not found, trying public.users fallback...')
+        const { data: userRow, error: userErr } = await bookingClient
+          .from('users')
+          .select('email')
+          .eq('id', bookingRecord.rentee_id)
+          .maybeSingle()
+        
+        if (userErr) {
+          console.warn('[approveBooking] public.users fallback error:', userErr.message)
+        } else if (userRow?.email) {
+          renteeEmail = userRow.email
+          if (renteeEmail) {
+            console.log('[approveBooking] Email found in public.users:', renteeEmail.substring(0, 5) + '***')
+          }
+        }
+      }
+    
+    if (renteeEmail) {
+       console.log('[approveBooking] Sending approval email to:', renteeEmail)
+       const emailResult = await sendApprovalEmail({
+          to: renteeEmail,
+          venueName: venueName || "the venue",
+         bookingId: bookingRecord.id,
+         amount: Number(bookingRecord.total_amount ?? 0)
+       })
+       console.log('[approveBooking] Email sent result:', { success: !emailResult?.error, emailId: (emailResult as any)?.id || 'N/A' })
+    } else {
+      console.warn('[approveBooking]  CRITICAL: Rentee email not found anywhere! Booking ID:', bookingId)
+      console.warn('[approveBooking] Rentee ID:', bookingRecord.rentee_id)
+    }
+  } catch (emailError) {
+    console.error('Failed to send approval email (non-fatal)', emailError)
+  }
+
   return { success: true }
 }
 

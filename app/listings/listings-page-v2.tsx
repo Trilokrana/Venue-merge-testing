@@ -4,8 +4,10 @@ import { useJsApiLoader } from "@react-google-maps/api"
 import * as React from "react"
 
 import { useListings } from "@/components/common/hooks/useListings"
+import Logo from "@/components/common/logo"
 import ListingFiltersModal from "@/components/common/modals/ListingFiltersModal"
 import { FilterOption, RenderToolbar } from "@/components/common/toolbar/RenderToolbar"
+import UserProfile from "@/components/common/user-profile"
 import { cleanFilters } from "@/components/data-table/utils"
 import { VenueListingCard } from "@/components/listings/venue-listing-card"
 import { VenueListingCardSkeleton } from "@/components/listings/venue-listing-card-skeleton"
@@ -13,12 +15,15 @@ import { VenueSearchBar } from "@/components/listings/venue-search-bar"
 import { VenuesMap } from "@/components/listings/venues-map"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { GlobalFooter } from "@/components/ui/global-footer"
+import { AuthButtons } from "@/components/ui/global-header"
 import { Label } from "@/components/ui/label"
 import { PaginationWithLinks } from "@/components/ui/pagination-with-links"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useModalControlQuery } from "@/hooks/use-modal-control-query"
-import { useUser } from "@/hooks/use-user"
+import { useUser, UseUserResult } from "@/hooks/use-user"
 import { capitalizeFirstLetter } from "@/lib/format"
 import { Constants } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
@@ -28,7 +33,6 @@ import { format } from "date-fns"
 import { MapPin, SlidersHorizontal, Zap } from "lucide-react"
 import Image from "next/image"
 import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsString, useQueryState } from "nuqs"
-import { GlobalFooter } from "@/components/ui/global-footer"
 
 const GOOGLE_MAPS_LIBRARIES = ["places"] as const
 
@@ -89,8 +93,8 @@ const filterOptions: FilterOption[] = [
 ]
 
 export function ListingsPageV2() {
-  const { data: user } = useUser()
-
+  const { data: user, isLoading: isUserLoading } = useUser()
+  const isUserProfileLoading = isUserLoading
   const filterDialog = useModalControlQuery("filter-dialog")
   const amenitiesDialog = useModalControlQuery("amenities-dialog")
   // Pagination + view-mode are owned by the page.
@@ -273,7 +277,10 @@ export function ListingsPageV2() {
   return (
     <React.Fragment>
       <div className="min-h-screen bg-background text-base">
-        <nav className="sticky top-0 z-40 border-b bg-background">
+        <nav className="flex items-center justify-between px-0 sm:px-4 md:px-6 lg:px-8 sticky top-0 z-40 border-b bg-background">
+          <div className="hidden md:block">
+            <Logo />
+          </div>
           <div className="mx-auto flex w-full max-w-7xl justify-center px-4 py-3 md:px-6 lg:px-8">
             <VenueSearchBar
               mapsLoaded={mapsLoaded && !loadError}
@@ -308,6 +315,15 @@ export function ListingsPageV2() {
                 disabled: !enableSearchVenueFilters,
               }}
             />
+          </div>
+          <div className="hidden md:flex items-center justify-center">
+            {isUserProfileLoading ? (
+              <Skeleton className="w-10 h-10 rounded-full" />
+            ) : user?.user ? (
+              <UserProfile user={user as unknown as UseUserResult} />
+            ) : (
+              <AuthButtons showGetStarted={false} />
+            )}
           </div>
         </nav>
 
