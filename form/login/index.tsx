@@ -32,7 +32,7 @@ function postLoginPath(searchParams: ReturnType<typeof useSearchParams>) {
   return "/dashboard"
 }
 
-const LoginForm = ({}: LoginFormProps) => {
+const LoginForm = ({ }: LoginFormProps) => {
   const supabase = getSupabaseBrowserClient()
   const router = useRouter()
   const searchParams = useSearchParams()
