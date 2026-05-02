@@ -155,7 +155,7 @@ const venueBaseObjectSchema = z.object({
   event_types: z.array(eventTypeEnum).max(5).optional(),
   capacity: z.number().int().positive().nullable().optional(),
   square_footage: z.number().int().positive().nullable().optional(),
-  indoor_outdoor: indoorOutdoorEnum.optional(),
+  indoor_outdoor: indoorOutdoorEnum,
   hourly_rate: z.number().positive().nullable().optional(),
   min_hours: z.number().int().positive().nullable().optional(),
   instabook: z.boolean().default(false),

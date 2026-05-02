@@ -1,11 +1,11 @@
 "use client"
-import { ArrowRight, CalendarDays, Check, Clock, DollarSign, X } from "lucide-react"
+import { ArrowRight, Building, CalendarDays, Check, Clock, DollarSign, X } from "lucide-react"
 import Link from "next/link"
 
 import { cleanFilters } from "@/components/data-table/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import IconWrapper from "@/components/ui/icon-wrapper"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUser } from "@/hooks/use-user"
@@ -21,6 +21,13 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { useOwnerBookings } from "../hooks/useMyBookings"
 import { useOwnerKPIs } from "../hooks/useMyDashboard"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 const kpisData = {
   upcoming_bookings: {
@@ -37,6 +44,11 @@ const kpisData = {
     label: "Total earnings",
     sublabel: "This year",
     icon: DollarSign,
+  },
+  total_venues: {
+    label: "Total Venues",
+    sublabel: "Total venues you have listed",
+    icon: Building,
   },
 }
 
@@ -64,10 +76,17 @@ export default function RenteeDashboardPage() {
 
   const now = new Date()
   const {
-    data: renteeKpis = { upcoming_bookings: 0, pending_requests: 0, total_earnings: 0 },
+    data: renteeKpis = {
+      upcoming_bookings: 0,
+      pending_requests: 0,
+      total_earnings: 0,
+      total_venues: 0,
+      bookings_this_month: { count: 0, data: [] },
+    },
     isLoading: kpisLoading,
     isPending: kpisPending,
   } = useOwnerKPIs()
+  console.log("🚀 ~ RenteeDashboardPage ~ renteeKpis:", renteeKpis)
   const isKpisLoading = kpisLoading || kpisPending
 
   const upcomingBookingsFilters = cleanFilters({
@@ -85,7 +104,7 @@ export default function RenteeDashboardPage() {
 
   const pendingBookingsFilters = cleanFilters({
     status: "pending",
-    event_status: "upcoming",
+    // event_status: "upcoming",
     page: 1,
     perPage: 5,
   })
@@ -124,6 +143,20 @@ export default function RenteeDashboardPage() {
     }
   }
 
+  const chartConfig = {
+    views: {
+      label: "Page Views",
+    },
+    desktop: {
+      label: "Desktop",
+      color: "var(--chart-2)",
+    },
+    mobile: {
+      label: "Mobile",
+      color: "var(--chart-1)",
+    },
+  } satisfies ChartConfig
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -151,7 +184,7 @@ export default function RenteeDashboardPage() {
       {/* KPI strip */}
       <section
         aria-label="Your activity"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {Object.keys(kpisData).map((key) => {
           const k = kpisData[key as keyof typeof kpisData]
@@ -403,6 +436,64 @@ export default function RenteeDashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      {/* <Card className="py-0">
+        <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
+          <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:py-0!">
+            <CardTitle>Bookings this month</CardTitle>
+            <CardDescription>Showing total bookings for the last month</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 sm:p-6">
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+            <BarChart
+              accessibilityLayer
+              data={
+                renteeKpis?.bookings_this_month?.data?.map((el) => ({
+                  date: format(new Date(el.start_at), "MMM d, yyyy"),
+                  value: el.total_amount,
+                })) ?? []
+              }
+              margin={{
+                left: 12,
+                right: 12,
+              }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  const date = new Date(value)
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                }}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    className="w-[150px]"
+                    nameKey="views"
+                    labelFormatter={(value) => {
+                      return new Date(value).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    }}
+                  />
+                }
+              />
+              <Bar dataKey="value" fill="var(--chart-2)" />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card> */}
     </div>
   )
 }

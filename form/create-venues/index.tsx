@@ -36,11 +36,14 @@ import {
 } from "@/schemas/venue.schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { City, Country, State } from "country-state-city"
+import { Bolt, Building, Globe, HousePlus, ImageIcon, ListChecks, MapPinHouse } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useState, type ComponentProps } from "react"
 import { useForm, type FieldPath } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 import AmenitySelector from "./components/AmenitySelector"
+import { VenueFormSkeleton } from "./components/VenueFormSkeleton"
 import VenueRulesList, { validateUrl } from "./components/VenueRulesList"
 
 const venueTypeOptions = venueTypeEnum.options?.map((option) => ({
@@ -74,7 +77,11 @@ export type VenueFormOutput = z.infer<typeof createVenueSchema>
 
 /** Stable reference — avoid `steps={[...]}` each render (invalidates callbacks / context). */
 const formSteps: MultiStepFormStep<FormData>[] = [
-  { id: "basic-information", fields: ["name", "description", "venue_type", "event_types"] },
+  {
+    id: "basic-information",
+    fields: ["name", "description", "venue_type", "event_types"],
+    icon: <Building className="size-4" />,
+  },
   {
     id: "configuration",
     fields: [
@@ -87,6 +94,7 @@ const formSteps: MultiStepFormStep<FormData>[] = [
       "hours_of_operation",
       "cancellation_policy",
     ],
+    icon: <Bolt className="size-4" />,
   },
   {
     id: "address",
@@ -99,12 +107,13 @@ const formSteps: MultiStepFormStep<FormData>[] = [
       "address.country",
       "phone",
     ],
+    icon: <MapPinHouse className="size-4" />,
   },
-  { id: "images", fields: ["images"] },
+  { id: "images", fields: ["images"], icon: <ImageIcon className="size-4" /> },
   // { id: "location", fields: ["placeId", "lat", "lng", "formatted_address"] },
-  { id: "amenities", fields: ["amenities"] },
-  { id: "rules", fields: ["rules", "is_active"] },
-  { id: "social-media-links", fields: ["social_media_links"] },
+  { id: "amenities", fields: ["amenities"], icon: <HousePlus className="size-4" /> },
+  { id: "rules", fields: ["rules", "is_active"], icon: <ListChecks className="size-4" /> },
+  { id: "social-media-links", fields: ["social_media_links"], icon: <Globe className="size-4" /> },
 ]
 
 /** Last async slug check result — used after `form.trigger` clears manual `setError` on Next. */
@@ -173,7 +182,7 @@ const defaultFormValues: FormData = {
   event_types: [],
   capacity: undefined,
   square_footage: undefined,
-  indoor_outdoor: undefined,
+  indoor_outdoor: "indoor",
   hourly_rate: undefined,
   min_hours: undefined,
   instabook: true,
@@ -247,8 +256,10 @@ const initialFormValues: FormData = {
  * Example: `MultiStepForm` + `MultiStepFormLayout` (card header / content / footer).
  */
 export function CreateVenueForm() {
+  const router = useRouter()
   const { mutateAsync: checkSlugExists, isPending: isCheckingSlug } = useCheckSlugExists()
   const [slugGate, setSlugGate] = useState<SlugAvailabilityGate>("idle")
+  const [isPendingCreateVenue, setIsPendingCreateVenue] = useState(false)
 
   const form = useForm<FormData, unknown, VenueFormOutput>({
     resolver: zodResolver(createVenueSchema),
@@ -308,7 +319,7 @@ export function CreateVenueForm() {
         error: "Error deleting venue",
       },
     }
-
+    setIsPendingCreateVenue(true)
     try {
       const { address, placeId, lat, lng, formatted_address, ...rest } = data
       const { address_line_2, ...addressRest } = address
@@ -338,12 +349,15 @@ export function CreateVenueForm() {
       }
       toast.success(venueMessages.create.success)
       form.reset(defaultFormValues)
+      router.push(`/venues/${result.data.slug}`)
     } catch (error) {
       // Display user-friendly error message
       const errorMessage = parseVenueError(error)
       toast.error(errorMessage)
       // Re-throw error so parent components know it failed
       throw error
+    } finally {
+      setIsPendingCreateVenue(false)
     }
   }
 
@@ -428,44 +442,54 @@ export function CreateVenueForm() {
           </MultiStepFormLayout.Header>
 
           <MultiStepFormLayout.Content>
-            <MultiStepForm.Step name="basic-information">
-              <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Venue Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter a venue name" autoComplete="name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="venue_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Venue Type</FormLabel>
-                      <FormControl>
-                        <SimpleSelect
-                          placeholder="Select a venue type"
-                          options={venueTypeOptions}
-                          {...field}
-                          value={venueTypeOptions?.find((option) => option.value === field.value)}
-                          onChange={(value) => {
-                            const selectedOption = value as OptionObj
-                            field.onChange(selectedOption?.value)
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage className="break-all" />
-                    </FormItem>
-                  )}
-                />
-                {/* <FormField
+            {isPendingCreateVenue ? (
+              <VenueFormSkeleton />
+            ) : (
+              <>
+                <MultiStepForm.Step name="basic-information">
+                  <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter a venue name"
+                              autoComplete="name"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="venue_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue Type</FormLabel>
+                          <FormControl>
+                            <SimpleSelect
+                              placeholder="Select a venue type"
+                              options={venueTypeOptions}
+                              {...field}
+                              value={venueTypeOptions?.find(
+                                (option) => option.value === field.value
+                              )}
+                              onChange={(value) => {
+                                const selectedOption = value as OptionObj
+                                field.onChange(selectedOption?.value)
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage className="break-all" />
+                        </FormItem>
+                      )}
+                    />
+                    {/* <FormField
                   control={form.control}
                   name="slug"
                   render={({ field }) => (
@@ -484,623 +508,639 @@ export function CreateVenueForm() {
                     </FormItem>
                   )}
                 /> */}
-              </div>
+                  </div>
 
-              <FormField
-                control={form.control}
-                name="event_types"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Event Types</FormLabel>
-                    <FormControl>
-                      <SimpleSelect
-                        isMulti
-                        placeholder="Select event types"
-                        options={eventTypeOptions}
-                        {...field}
-                        value={eventTypeOptions?.filter(
-                          (option) => field.value?.includes(option.value) ?? false
-                        )}
-                        onChange={(value) => {
-                          const selectedOption = value as OptionObj[]
-                          if (selectedOption?.length > 5) {
-                            toast.error("You can only select up to 5 event types")
-                            return
-                          } else {
-                            field.onChange(
-                              selectedOption?.map((option: OptionObj) => option.value) ?? []
-                            )
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="event_types"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event Types</FormLabel>
+                        <FormControl>
+                          <SimpleSelect
+                            isMulti
+                            placeholder="Select event types"
+                            options={eventTypeOptions}
+                            {...field}
+                            value={eventTypeOptions?.filter(
+                              (option) => field.value?.includes(option.value) ?? false
+                            )}
+                            onChange={(value) => {
+                              const selectedOption = value as OptionObj[]
+                              if (selectedOption?.length > 5) {
+                                toast.error("You can only select up to 5 event types")
+                                return
+                              } else {
+                                field.onChange(
+                                  selectedOption?.map((option: OptionObj) => option.value) ?? []
+                                )
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        className="min-h-30"
-                        placeholder="Write a description for your venue..."
-                        autoComplete="description"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </MultiStepForm.Step>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="min-h-30"
+                            placeholder="Write a description for your venue..."
+                            autoComplete="description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </MultiStepForm.Step>
 
-            <MultiStepForm.Step name="configuration">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="capacity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Capacity</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="w-full"
-                          placeholder="Capacity"
-                          autoComplete="capacity"
-                          type="number"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (!val) {
-                              field.onChange(null as unknown as number)
-                              return
-                            }
+                <MultiStepForm.Step name="configuration">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Capacity</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full"
+                              placeholder="Capacity"
+                              autoComplete="capacity"
+                              type="number"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (!val) {
+                                  field.onChange(null as unknown as number)
+                                  return
+                                }
 
-                            field.onChange(parseOptionalInt(val))
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="square_footage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Square Footage</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="w-full"
-                          placeholder="Square Footage"
-                          autoComplete="square_footage"
-                          type="number"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (!val) {
-                              field.onChange(null as unknown as number)
-                              return
-                            }
+                                field.onChange(parseOptionalInt(val))
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="square_footage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Square Footage</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full"
+                              placeholder="Square Footage"
+                              autoComplete="square_footage"
+                              type="number"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (!val) {
+                                  field.onChange(null as unknown as number)
+                                  return
+                                }
 
-                            field.onChange(parseOptionalInt(val))
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="indoor_outdoor"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2 lg:col-span-1">
-                      <FormLabel>Indoor/Outdoor</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          {...field}
-                          value={
-                            indoorOutdoorOptions?.find((option) => option.value === field.value)
-                              ?.value
-                          }
-                          onValueChange={(value) => field.onChange(value)}
-                          className="flex flex-col sm:flex-row gap-4 border rounded-sm p-4 py-3"
-                        >
-                          {indoorOutdoorOptions.map((option) => (
-                            <div key={option.value} className="flex items-center gap-2">
-                              <RadioGroupItem value={option.value} id={option.value} />
-                              <Label htmlFor={option.value}>{option.label}</Label>
+                                field.onChange(parseOptionalInt(val))
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="indoor_outdoor"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2 lg:col-span-1">
+                          <FormLabel>Indoor/Outdoor</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              {...field}
+                              value={
+                                indoorOutdoorOptions?.find((option) => option.value === field.value)
+                                  ?.value
+                              }
+                              onValueChange={(value) => field.onChange(value)}
+                              className="flex flex-col sm:flex-row gap-4 border rounded-sm p-4 py-3"
+                            >
+                              {indoorOutdoorOptions.map((option) => (
+                                <div key={option.value} className="flex items-center gap-2">
+                                  <RadioGroupItem value={option.value} id={option.value} />
+                                  <Label htmlFor={option.value}>{option.label}</Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="instabook"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col justify-between">
+                          <FormLabel>Instabook</FormLabel>
+                          <FormControl>
+                            <div className="border rounded-sm p-2 py-2 flex items-center h-10">
+                              <Switch
+                                checked={field.value ?? false}
+                                onCheckedChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                className="border-border"
+                              />
                             </div>
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="instabook"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col justify-between">
-                      <FormLabel>Instabook</FormLabel>
-                      <FormControl>
-                        <div className="border rounded-sm p-2 py-2 flex items-center h-10">
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hourly_rate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hourly Rate</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full"
+                              placeholder="Hourly Rate"
+                              autoComplete="hourly_rate"
+                              type="number"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (!val) {
+                                  field.onChange(null as unknown as number)
+                                  return
+                                }
+
+                                field.onChange(parseOptionalFloat(val))
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="min_hours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Min Hours</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full"
+                              placeholder="Min Hours"
+                              autoComplete="min_hours"
+                              type="number"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              min={0}
+                              max={24}
+                              onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                                const input = e.currentTarget
+                                let val = Number(input.value)
+
+                                if (val < 0) val = 0
+                                if (val > 24) val = 24
+
+                                input.value = val > 0 ? val.toString() : ""
+                              }}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (!val) {
+                                  field.onChange(null as unknown as number)
+                                  return
+                                }
+
+                                field.onChange(Number(val))
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hours_of_operation"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1 sm:col-span-2 lg:col-span-3">
+                          <FormControl>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                              <div className="w-full space-y-2">
+                                <Label>Hours of Operation From</Label>
+                                <Input
+                                  type="time"
+                                  step={1800}
+                                  value={to24Hour(field.value?.split(" - ")[0])}
+                                  onChange={(e) => {
+                                    const from = formatTime(e.target.value)
+                                    const [, toRaw] = field.value?.split(" - ") || []
+                                    const to = toRaw || togglePeriod(from)
+                                    field.onChange(`${from} - ${to}`)
+                                  }}
+                                  className="w-full bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                                />
+                              </div>
+
+                              <div className="w-full space-y-2">
+                                <Label>Hours of Operation To</Label>
+                                <Input
+                                  type="time"
+                                  step={1800}
+                                  value={to24Hour(field.value?.split(" - ")[1])}
+                                  onChange={(e) => {
+                                    const to = formatTime(e.target.value)
+                                    const [fromRaw] = field.value?.split(" - ") || []
+                                    const from = fromRaw || togglePeriod(to)
+                                    field.onChange(`${from} - ${to}`)
+                                  }}
+                                  className="w-full bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                                />
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cancellation_policy"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1 sm:col-span-2 lg:col-span-3">
+                          <FormLabel>Cancellation Policy</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              className="w-full"
+                              placeholder="Cancellation Policy"
+                              autoComplete="cancellation_policy"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </MultiStepForm.Step>
+
+                <MultiStepForm.Step name="address">
+                  <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address.address_line_1"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 1</FormLabel>
+                          <FormControl>
+                            <GooglePlacesAutocomplete
+                              name={field.name}
+                              ref={field.ref}
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              countryRestriction="us"
+                              placeholder="Start typing a US address..."
+                              onPlaceSelected={handlePlaceSelected}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.address_line_2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 2</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Address Line 2"
+                              autoComplete="address_line_2"
+                              type="text"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              options={updatedCountries}
+                              value={
+                                updatedCountries?.find((option) => option.value === field.value) ||
+                                null
+                              }
+                              onChange={(value) => {
+                                const selectedOption = value as OptionObj
+                                const nextCountry = selectedOption?.value ?? ""
+                                field.onChange(nextCountry)
+                                form.setValue("address.state", "", {
+                                  shouldDirty: true,
+                                  shouldValidate: true,
+                                  shouldTouch: true,
+                                })
+                                form.setValue("address.city", "", {
+                                  shouldDirty: true,
+                                  shouldValidate: true,
+                                  shouldTouch: true,
+                                })
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              options={updatedStates(form.watch("address.country"))}
+                              value={
+                                updatedStates(form.watch("address.country"))?.find(
+                                  (option) => option.value === field.value
+                                ) || null
+                              }
+                              onChange={(value) => {
+                                const selectedOption = value as OptionObj
+                                const nextState = selectedOption?.value ?? ""
+                                field.onChange(nextState)
+                                form.setValue("address.city", "", {
+                                  shouldDirty: true,
+                                  shouldValidate: true,
+                                  shouldTouch: true,
+                                })
+                              }}
+                              isDisabled={!form.watch("address.country")}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <SimpleSelect
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              options={updatedCities(
+                                form.watch("address.country"),
+                                form.watch("address.state")
+                              )}
+                              value={
+                                updatedCities(
+                                  form.watch("address.country"),
+                                  form.watch("address.state")
+                                )?.find((option) => option.value === field.value) || null
+                              }
+                              onChange={(value) => {
+                                const selectedOption = value as OptionObj
+                                field.onChange(selectedOption?.value ?? "")
+                              }}
+                              isDisabled={!form.watch("address.state")}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.zip"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Zip</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Zip"
+                              autoComplete="zip"
+                              type="number"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Phone"
+                              type="tel"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </MultiStepForm.Step>
+
+                <MultiStepForm.Step name="images">
+                  <FormField
+                    control={form.control}
+                    name="images"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>Images ({field.value?.length ?? 0})</FormLabel>
+                        <FormControl>
+                          <FileUploadGallery
+                            key="create-venue-gallery"
+                            maxFiles={10}
+                            maxSize={5 * 1024 * 1024}
+                            accept="image/*"
+                            multiple={true}
+                            onFilesChange={(files) => {
+                              // console.log("🚀 ~ CreateVenueForm ~ files:", files)
+                              field.onChange(
+                                mergeGalleryFilesIntoFormImages(form.getValues("images"), files)
+                              )
+                            }}
+                            initialFiles={formImagesToGalleryMetadata(field.value)}
+                          />
+                        </FormControl>
+                        {Array.isArray(errors?.images) &&
+                          (errors?.images || [])?.length > 0 &&
+                          (errors?.images || [])?.map((error, index) => {
+                            if (!error) return null
+                            const img = field.value?.[index]
+                            const fileLabel =
+                              img?.file instanceof File
+                                ? img.file.name
+                                : img?.file && typeof img.file === "object" && "name" in img.file
+                                  ? (img.file as FileMetadata).name
+                                  : "Unknown"
+                            const msg =
+                              flattenRhfFieldErrorMessage(error) ||
+                              "Does not match the required image format."
+                            return (
+                              <p key={`${fileLabel}-${String(index)}`} className="text-sm">
+                                <span className="text-destructive">{fileLabel}</span>
+                                {": "}
+                                {msg}
+                              </p>
+                            )
+                          })}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </MultiStepForm.Step>
+
+                <MultiStepForm.Step name="amenities">
+                  <FormField
+                    control={form.control}
+                    name="amenities"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amenities</FormLabel>
+                        <AmenitySelector
+                          selectedAmenities={field.value ?? []}
+                          onChange={(amenities) => field.onChange(amenities)}
+                        />
+                      </FormItem>
+                    )}
+                  />
+                </MultiStepForm.Step>
+
+                <MultiStepForm.Step name="rules">
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Is Active</FormLabel>
+                        <FormControl>
                           <Switch
                             checked={field.value ?? false}
                             onCheckedChange={field.onChange}
                             onBlur={field.onBlur}
                             name={field.name}
                             ref={field.ref}
-                            className="border-border"
                           />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hourly_rate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hourly Rate</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="w-full"
-                          placeholder="Hourly Rate"
-                          autoComplete="hourly_rate"
-                          type="number"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (!val) {
-                              field.onChange(null as unknown as number)
-                              return
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="rules"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rules</FormLabel>
+                        <FormControl>
+                          <VenueRulesList
+                            label="Rules"
+                            items={field.value ?? []}
+                            onChange={(rules: string[]) => field.onChange(rules)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </MultiStepForm.Step>
+
+                <MultiStepForm.Step name="social-media-links">
+                  <FormField
+                    control={form.control}
+                    name="social_media_links"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Social Media Links</FormLabel>
+                        <FormControl>
+                          <VenueRulesList
+                            validate={validateUrl}
+                            label="Social Media Links"
+                            items={field.value ?? []}
+                            onChange={(socialMediaLinks: string[]) =>
+                              field.onChange(socialMediaLinks)
                             }
-
-                            field.onChange(parseOptionalFloat(val))
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="min_hours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Min Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="w-full"
-                          placeholder="Min Hours"
-                          autoComplete="min_hours"
-                          type="number"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (!val) {
-                              field.onChange(null as unknown as number)
-                              return
-                            }
-
-                            field.onChange(parseOptionalInt(val))
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hours_of_operation"
-                  render={({ field }) => (
-                    <FormItem className="col-span-1 sm:col-span-2 lg:col-span-3">
-                      <FormControl>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                          <div className="w-full space-y-2">
-                            <Label>Hours of Operation From</Label>
-                            <Input
-                              type="time"
-                              step={60}
-                              value={to24Hour(field.value?.split(" - ")[0])}
-                              onChange={(e) => {
-                                const from = formatTime(e.target.value)
-                                const [, toRaw] = field.value?.split(" - ") || []
-                                const to = toRaw || togglePeriod(from)
-                                field.onChange(`${from} - ${to}`)
-                              }}
-                              className="w-full bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
-                            />
-                          </div>
-
-                          <div className="w-full space-y-2">
-                            <Label>Hours of Operation To</Label>
-                            <Input
-                              type="time"
-                              step={60}
-                              value={to24Hour(field.value?.split(" - ")[1])}
-                              onChange={(e) => {
-                                const to = formatTime(e.target.value)
-                                const [fromRaw] = field.value?.split(" - ") || []
-                                const from = fromRaw || togglePeriod(to)
-                                field.onChange(`${from} - ${to}`)
-                              }}
-                              className="w-full bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
-                            />
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cancellation_policy"
-                  render={({ field }) => (
-                    <FormItem className="col-span-1 sm:col-span-2 lg:col-span-3">
-                      <FormLabel>Cancellation Policy</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="w-full"
-                          placeholder="Cancellation Policy"
-                          autoComplete="cancellation_policy"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </MultiStepForm.Step>
-
-            <MultiStepForm.Step name="address">
-              <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="address.address_line_1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Line 1</FormLabel>
-                      <FormControl>
-                        <GooglePlacesAutocomplete
-                          name={field.name}
-                          ref={field.ref}
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          countryRestriction="us"
-                          placeholder="Start typing a US address..."
-                          onPlaceSelected={handlePlaceSelected}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.address_line_2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Line 2</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Address Line 2"
-                          autoComplete="address_line_2"
-                          type="text"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <SimpleSelect
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          options={updatedCountries}
-                          value={
-                            updatedCountries?.find((option) => option.value === field.value) || null
-                          }
-                          onChange={(value) => {
-                            const selectedOption = value as OptionObj
-                            const nextCountry = selectedOption?.value ?? ""
-                            field.onChange(nextCountry)
-                            form.setValue("address.state", "", {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                              shouldTouch: true,
-                            })
-                            form.setValue("address.city", "", {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                              shouldTouch: true,
-                            })
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                        <SimpleSelect
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          options={updatedStates(form.watch("address.country"))}
-                          value={
-                            updatedStates(form.watch("address.country"))?.find(
-                              (option) => option.value === field.value
-                            ) || null
-                          }
-                          onChange={(value) => {
-                            const selectedOption = value as OptionObj
-                            const nextState = selectedOption?.value ?? ""
-                            field.onChange(nextState)
-                            form.setValue("address.city", "", {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                              shouldTouch: true,
-                            })
-                          }}
-                          isDisabled={!form.watch("address.country")}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <SimpleSelect
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          options={updatedCities(
-                            form.watch("address.country"),
-                            form.watch("address.state")
-                          )}
-                          value={
-                            updatedCities(
-                              form.watch("address.country"),
-                              form.watch("address.state")
-                            )?.find((option) => option.value === field.value) || null
-                          }
-                          onChange={(value) => {
-                            const selectedOption = value as OptionObj
-                            field.onChange(selectedOption?.value ?? "")
-                          }}
-                          isDisabled={!form.watch("address.state")}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.zip"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zip</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Zip"
-                          autoComplete="zip"
-                          type="number"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Phone"
-                          type="tel"
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </MultiStepForm.Step>
-
-            <MultiStepForm.Step name="images">
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>Images ({field.value?.length ?? 0})</FormLabel>
-                    <FormControl>
-                      <FileUploadGallery
-                        key="create-venue-gallery"
-                        maxFiles={10}
-                        maxSize={5 * 1024 * 1024}
-                        accept="image/*"
-                        multiple={true}
-                        onFilesChange={(files) => {
-                          // console.log("🚀 ~ CreateVenueForm ~ files:", files)
-                          field.onChange(
-                            mergeGalleryFilesIntoFormImages(form.getValues("images"), files)
-                          )
-                        }}
-                        initialFiles={formImagesToGalleryMetadata(field.value)}
-                      />
-                    </FormControl>
-                    {Array.isArray(errors?.images) &&
-                      (errors?.images || [])?.length > 0 &&
-                      (errors?.images || [])?.map((error, index) => {
-                        if (!error) return null
-                        const img = field.value?.[index]
-                        const fileLabel =
-                          img?.file instanceof File
-                            ? img.file.name
-                            : img?.file && typeof img.file === "object" && "name" in img.file
-                              ? (img.file as FileMetadata).name
-                              : "Unknown"
-                        const msg =
-                          flattenRhfFieldErrorMessage(error) ||
-                          "Does not match the required image format."
-                        return (
-                          <p key={`${fileLabel}-${String(index)}`} className="text-sm">
-                            <span className="text-destructive">{fileLabel}</span>
-                            {": "}
-                            {msg}
-                          </p>
-                        )
-                      })}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </MultiStepForm.Step>
-
-            <MultiStepForm.Step name="amenities">
-              <FormField
-                control={form.control}
-                name="amenities"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amenities</FormLabel>
-                    <AmenitySelector
-                      selectedAmenities={field.value ?? []}
-                      onChange={(amenities) => field.onChange(amenities)}
-                    />
-                  </FormItem>
-                )}
-              />
-            </MultiStepForm.Step>
-
-            <MultiStepForm.Step name="rules">
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Is Active</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value ?? false}
-                        onCheckedChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="rules"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rules</FormLabel>
-                    <FormControl>
-                      <VenueRulesList
-                        label="Rules"
-                        items={field.value ?? []}
-                        onChange={(rules: string[]) => field.onChange(rules)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </MultiStepForm.Step>
-
-            <MultiStepForm.Step name="social-media-links">
-              <FormField
-                control={form.control}
-                name="social_media_links"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Social Media Links</FormLabel>
-                    <FormControl>
-                      <VenueRulesList
-                        validate={validateUrl}
-                        label="Social Media Links"
-                        items={field.value ?? []}
-                        onChange={(socialMediaLinks: string[]) => field.onChange(socialMediaLinks)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </MultiStepForm.Step>
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </MultiStepForm.Step>
+              </>
+            )}
           </MultiStepFormLayout.Content>
 
           <MultiStepFormLayout.Footer>

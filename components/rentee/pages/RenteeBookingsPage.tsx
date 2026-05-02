@@ -84,7 +84,7 @@ const RenteeBookingsPage = () => {
   const [start_at] = useQueryState("start_at", parseAsString.withDefault(""))
   const [status] = useQueryState("status", parseAsString.withDefault(""))
   const [venue_type] = useQueryState("venue_type", parseAsString.withDefault(""))
-  const [event_status] = useQueryState("event_status", parseAsString.withDefault("upcoming"))
+  const [event_status] = useQueryState("event_status", parseAsString.withDefault(""))
 
   const debouncedQuery = useDebounce(query, 800)
 

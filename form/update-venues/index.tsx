@@ -15,7 +15,6 @@ import { MultiStepFormLayout } from "@/components/ui/multi-step-form-layout"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SimpleSelect } from "@/components/ui/react-select"
 import { OptionObj } from "@/components/ui/react-select/types"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useCheckSlugExists } from "@/components/venue-onwer/hooks/useCheckSlug"
@@ -38,11 +37,12 @@ import {
 } from "@/schemas/venue.schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { City, Country, State } from "country-state-city"
-import { Loader2 } from "lucide-react"
+import { Bolt, Building, Globe, HousePlus, ImageIcon, ListChecks, Loader2, MapPinHouse } from "lucide-react"
 import { ComponentProps, useState } from "react"
 import { FieldPath, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
+import { VenueFormSkeleton } from "../create-venues/components/VenueFormSkeleton"
 
 const venueTypeOptions = venueTypeEnum.options?.map((option) => ({
   label: option
@@ -194,7 +194,11 @@ export type VenueFormOutput = z.infer<typeof createVenueSchema>
 
 /** Stable reference — avoid `steps={[...]}` each render (invalidates callbacks / context). */
 const formSteps: MultiStepFormStep<FormData>[] = [
-  { id: "basic-information", fields: ["name", "description", "venue_type", "event_types"] },
+  {
+    id: "basic-information",
+    fields: ["name", "description", "venue_type", "event_types"],
+    icon: <Building className="size-4" />,
+  },
   {
     id: "configuration",
     fields: [
@@ -207,6 +211,7 @@ const formSteps: MultiStepFormStep<FormData>[] = [
       "hours_of_operation",
       "cancellation_policy",
     ],
+    icon: <Bolt className="size-4" />,
   },
   {
     id: "address",
@@ -219,12 +224,13 @@ const formSteps: MultiStepFormStep<FormData>[] = [
       "address.country",
       "phone",
     ],
+    icon: <MapPinHouse className="size-4" />,
   },
-  { id: "images", fields: ["images"] },
+  { id: "images", fields: ["images"], icon: <ImageIcon className="size-4" /> },
   // { id: "location", fields: ["placeId", "lat", "lng", "formatted_address"] },
-  { id: "amenities", fields: ["amenities"] },
-  { id: "rules", fields: ["rules", "is_active"] },
-  { id: "social-media-links", fields: ["social_media_links"] },
+  { id: "amenities", fields: ["amenities"], icon: <HousePlus className="size-4" /> },
+  { id: "rules", fields: ["rules", "is_active"], icon: <ListChecks className="size-4" /> },
+  { id: "social-media-links", fields: ["social_media_links"], icon: <Globe className="size-4" /> },
 ]
 
 /** Last async slug check result — used after `form.trigger` clears manual `setError` on Next. */
@@ -525,13 +531,7 @@ export function UpdateVenueForm({
 
           <MultiStepFormLayout.Content>
             {isPendingEditMyVenue ? (
-              <div className="flex-1 h-full space-y-4 p-4">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((el, i) => (
-                  <div key={el} className="">
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                ))}
-              </div>
+              <VenueFormSkeleton />
             ) : (
               <>
                 <MultiStepForm.Step name="basic-information">
@@ -812,6 +812,17 @@ export function UpdateVenueForm({
                               ref={field.ref}
                               onBlur={field.onBlur}
                               value={field.value ?? ""}
+                              min={0}
+                              max={24}
+                              onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                                const input = e.currentTarget
+                                let val = Number(input.value)
+
+                                if (val < 0) val = 0
+                                if (val > 24) val = 24
+
+                                input.value = val > 0 ? val.toString() : ""
+                              }}
                               onChange={(e) => {
                                 const val = e.target.value
                                 if (!val) {
@@ -819,7 +830,7 @@ export function UpdateVenueForm({
                                   return
                                 }
 
-                                field.onChange(parseOptionalInt(val))
+                                field.onChange(Number(val))
                               }}
                             />
                           </FormControl>
@@ -838,7 +849,7 @@ export function UpdateVenueForm({
                                 <Label>Hours of Operation From</Label>
                                 <Input
                                   type="time"
-                                  step={60}
+                                  step={1800}
                                   value={to24Hour(field.value?.split(" - ")[0])}
                                   onChange={(e) => {
                                     const from = formatTime(e.target.value)

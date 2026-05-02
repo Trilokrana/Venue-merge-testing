@@ -175,10 +175,11 @@ export async function getBookingsByRenteeId(renteeId: string, filters?: BookingF
 
   // Event Status (clean + predictable)
   if (filters?.event_status) {
+    const {start: startNow, end: endNow}   = getDayRange(now)
     if (filters.event_status === "upcoming") {
-      query = query.gte("start_at", now)
+      query = query.gte("start_at", startNow)
     } else if (filters.event_status === "past") {
-      query = query.lt("start_at", now)
+      query = query.lte("start_at", endNow)
     }
   }
   // ---------- Ordering ----------

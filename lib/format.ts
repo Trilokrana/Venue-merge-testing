@@ -138,3 +138,79 @@ export const getDayRangeUTC = (date: Date) => {
     end: end.toISOString(),
   }
 }
+
+export const DateUtils = {
+  // ---------- DAY RANGE ----------
+  getDayRange(dateInput: string | Date) {
+    const date = new Date(dateInput)
+
+    const start = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    )
+
+    const end = new Date(start)
+    end.setUTCDate(end.getUTCDate() + 1)
+
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    }
+  },
+
+  // ---------- MONTH RANGE ----------
+  getMonthRange(dateInput: string | Date) {
+    const date = new Date(dateInput)
+
+    const start = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)
+    )
+
+    const end = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)
+    )
+
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    }
+  },
+
+  // ---------- YEAR RANGE ----------
+  getYearRange(dateInput: string | Date) {
+    const date = new Date(dateInput)
+
+    const start = new Date(
+      Date.UTC(date.getUTCFullYear(), 0, 1)
+    )
+
+    const end = new Date(
+      Date.UTC(date.getUTCFullYear() + 1, 0, 1)
+    )
+
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    }
+  },
+
+  // ---------- TODAY (SAFE) ----------
+  today() {
+    return this.getDayRange(new Date())
+  },
+
+  // ---------- NOW ----------
+  now() {
+    return new Date().toISOString()
+  },
+
+  // ---------- FORMAT (UI SAFE) ----------
+  format(dateInput: string | Date, options?: Intl.DateTimeFormatOptions) {
+    const date = new Date(dateInput)
+
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      ...options,
+    }).format(date)
+  },
+}

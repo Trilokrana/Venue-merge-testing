@@ -77,7 +77,7 @@ export default function RenteeDashboardPage() {
 
   const pendingBookingsFilters = cleanFilters({
     status: "pending",
-    event_status: "upcoming",
+    // event_status: "upcoming",
     page: 1,
     perPage: 5,
   })

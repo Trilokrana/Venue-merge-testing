@@ -8,12 +8,14 @@ import { Form } from "@/components/ui/form"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { Badge } from "./badge"
+import { toast } from "sonner"
 
 export type MultiStepFormStep<TFieldValues extends FieldValues> = {
   /** Stable id used by `<MultiStepForm.Step name={id} />`. */
   id: string
   /** Fields validated when moving forward from this step (`form.trigger`). */
   fields: readonly FieldPath<TFieldValues>[]
+  icon?: React.ReactNode
 }
 
 export type MultiStepFormContextValue<TFieldValues extends FieldValues> = {
@@ -164,9 +166,27 @@ function MultiStepFormStep<TFieldValues extends FieldValues>({
 }
 
 function MultiStepFormProgress({ className }: { className?: string }) {
-  const { activeStep, steps } = useMultiStepFormContext()
+  const { activeStep, steps, currentStep } = useMultiStepFormContext()
+
   const value = ((activeStep + 1) / steps.length) * 100
-  return <Progress value={value} className={className} />
+
+  return (
+    <div className="relative">
+      <Progress value={value} className={className} />
+
+      {/* Step Icon */}
+      {currentStep.icon && (
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-300"
+          style={{ left: `${value}%` }}
+        >
+          <div className="flex items-center justify-center rounded-full bg-primary text-white p-1.5 shadow-lg">
+            {currentStep.icon}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function MultiStepFormHeader({
@@ -181,14 +201,16 @@ function MultiStepFormHeader({
   const { activeStep, steps, currentStep } = useMultiStepFormContext()
   return (
     <div data-slot="multi-step-form-header" className={cn("space-y-1", className)}>
-      <p className="text-muted-foreground text-sm">
-        Step {activeStep + 1} of {steps.length}
+      <div className="flex items-center justify-between gap-4">
         {currentStep?.id ? (
-          <Badge variant="outline" className="ml-2 capitalize">
-            {currentStep.id.split("-").join(" ")}
+          <Badge className="capitalize">
+            {currentStep.icon && currentStep.icon} {currentStep.id.split("-").join(" ")}
           </Badge>
         ) : null}
-      </p>
+        <p className="text-muted-foreground text-sm">
+          Step {activeStep + 1} of {steps.length}
+        </p>
+      </div>
       {title != null ? <div className="text-base font-medium">{title}</div> : null}
       {description != null ? <p className="text-muted-foreground text-sm">{description}</p> : null}
     </div>
@@ -257,10 +279,53 @@ function MultiStepFormSubmit({
   className,
   ...props
 }: Omit<React.ComponentProps<typeof Button>, "type">) {
-  const { isLastStep } = useMultiStepFormContext()
+  const {
+    isLastStep,
+    form: {
+      formState: { errors },
+    },
+  } = useMultiStepFormContext()
   if (!isLastStep) return null
   return (
-    <Button type="submit" className={className} {...props}>
+    <Button
+      type="submit"
+      className={className}
+      {...props}
+      onClick={() => {
+        function getFirstErrorMessage(obj: any): string | null {
+          if (!obj) return null
+
+          for (const key in obj) {
+            const value = obj[key]
+
+            if (!value) continue
+
+            // ✅ Found message
+            if (typeof value.message === "string") {
+              return `${key}: ${value.message}`
+            }
+
+            // ✅ Dive deeper
+            if (typeof value === "object") {
+              const nested = getFirstErrorMessage(value)
+              if (nested) return `${key}: ${nested}`
+            }
+          }
+
+          return null
+        }
+
+        if (Object.keys(errors).length > 0) {
+          const message = getFirstErrorMessage(errors)
+
+          if (message) {
+            toast.error(message)
+          }
+
+          return
+        }
+      }}
+    >
       {children}
     </Button>
   )

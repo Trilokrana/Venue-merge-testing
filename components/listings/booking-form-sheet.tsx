@@ -9,7 +9,11 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 
-import { createBooking, checkBookingApproval, confirmBookingPayment } from "@/lib/bookings/cronofy-actions"
+import {
+  createBooking,
+  checkBookingApproval,
+  confirmBookingPayment,
+} from "@/lib/bookings/cronofy-actions"
 import { formatLocationLine, normalizeAddress, primaryImageUrl } from "@/app/listings/data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +43,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet"
 import type { VenueWithRelations } from "@/lib/venues/types"
+import { Rating } from "../ui/rating"
 
 const step1Schema = z.object({
   activity: z.string().min(1, "Activity is required"),
@@ -149,7 +154,7 @@ export function BookingFormSheet({
 
   // Note: For non-instabook, no polling is needed; it redirects after request
   React.useEffect(() => {
-    // Only used for instabook if we ever implement deferred instabook payments, 
+    // Only used for instabook if we ever implement deferred instabook payments,
     // but for now instabook goes straight to step 2 in handleNext.
   }, [venue.id, pendingBookingId])
 
@@ -160,11 +165,11 @@ export function BookingFormSheet({
 
   async function handleNext() {
     const isValid = await form.trigger(["activity", "castCrew", "projectName", "company", "about"])
-    
+
     if (isValid) {
       if (!venue.instabook) {
-        setIsSubmitting(true);
-        await submitBookingRequest(form.getValues(), true); 
+        setIsSubmitting(true)
+        await submitBookingRequest(form.getValues(), true)
       } else {
         setStep(2)
       }
@@ -200,7 +205,7 @@ export function BookingFormSheet({
         startAt: slotToISO(date, startTime),
         endAt: slotToISO(date, endTime),
         notes: fullNotes,
-        status: isRequest ? "pending" : "confirmed"
+        status: isRequest ? "pending" : "confirmed",
       })
 
       if (!result.success) {
@@ -210,7 +215,8 @@ export function BookingFormSheet({
 
       if (isRequest) {
         toast.success("Booking request sent!", {
-          description: "Your request is pending owner approval. You will be notified to confirm payment upon approval.",
+          description:
+            "Your request is pending owner approval. You will be notified to confirm payment upon approval.",
         })
         onOpenChange(false)
         router.push("/bookings")
@@ -236,14 +242,14 @@ export function BookingFormSheet({
       try {
         // Mock payment processing time
         await new Promise((r) => setTimeout(r, 1500))
-        
+
         const res = await confirmBookingPayment(pendingBookingId)
         if (res.success) {
           if (typeof sessionStorage !== "undefined") {
             sessionStorage.removeItem(`pending_booking_${venue.id}`)
           }
           toast.success("Payment successful! Booking confirmed.", {
-            description: "A calendar event is set for your booking."
+            description: "A calendar event is set for your booking.",
           })
           onOpenChange(false)
           router.push("/bookings")
@@ -261,27 +267,35 @@ export function BookingFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl md:max-w-175 lg:max-w-250 overflow-y-auto px-4 py-4 sm:px-8">
+      <SheetContent
+        className="w-full sm:max-w-2xl md:max-w-175 overflow-y-auto p-4"
+        onEscapeKeyDown={(e) => isSubmitting && e.preventDefault()}
+        onInteractOutside={(e) => isSubmitting && e.preventDefault()}
+      >
         <SheetHeader className="px-0 text-left">
           <SheetTitle className="text-2xl font-bold">
-            {step === 1 ? (venue.instabook ? "Instant Book" : "Request to Book") : "Complete Payment"}
+            {step === 1
+              ? venue.instabook
+                ? "Instant Book"
+                : "Request to Book"
+              : "Complete Payment"}
           </SheetTitle>
           <SheetDescription className="flex items-center gap-2">
-            <span className={step >= 1 ? "font-medium text-foreground" : ""}>
-              1. Details
-            </span>
+            <span className={step >= 1 ? "font-medium text-foreground" : ""}>1. Details</span>
             <ChevronRight className="size-4" />
-            <span className={step >= 2 ? "font-medium text-foreground" : ""}>
-              2. Payment
-            </span>
+            <span className={step >= 2 ? "font-medium text-foreground" : ""}>2. Payment</span>
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-6">
-          <Card className="rounded-2xl border shadow-sm border-border/60 overflow-hidden sm:max-w-md">
+          <Card size="sm" className="overflow-hidden sm:max-w-md">
             <div className="flex flex-row px-4  gap-2 bg-background items-start">
               {heroImage ? (
-                <img src={heroImage} alt={venue.name} className="size-20 shrink-0 rounded-lg object-cover border border-border/50" />
+                <img
+                  src={heroImage}
+                  alt={venue.name}
+                  className="size-20 shrink-0 rounded-lg object-cover border border-border/50"
+                />
               ) : (
                 <div className="size-20 shrink-0 rounded-lg bg-muted border border-border/50" />
               )}
@@ -292,9 +306,12 @@ export function BookingFormSheet({
                   <span className="line-clamp-2 leading-tight">{formatLocationLine(address)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm mt-0.5">
-                  <Star className="size-4 fill-[#f59e0b] text-[#f59e0b]" />
-                  <span className="font-bold text-foreground text-xs tracking-wide uppercase">New</span>
-                  <span className="text-muted-foreground text-xs">({venue.rating || "4.9"} Rating)</span>
+                  {venue.rating && <Rating value={venue.rating || 0} readOnly />}
+                  {venue.rating && (
+                    <span className="text-muted-foreground text-xs">
+                      ({venue.rating || "0.0"} Rating)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -302,29 +319,39 @@ export function BookingFormSheet({
             <Separator className="mx-4 w-auto" />
 
             <div className="px-4 bg-background">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Booking Details</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Booking Details
+              </p>
               <div className="flex items-center gap-3 text-foreground text-sm">
                 <Calendar className="size-4 text-primary/80" />
                 <span>{format(date, "MMMM d, yyyy")}</span>
               </div>
               <div className="flex items-center gap-3 text-foreground text-sm">
                 <Clock className="size-4 text-primary/80" />
-                <span>{startTime} – {endTime}</span>
+                <span>
+                  {startTime} – {endTime}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-foreground text-sm">
                 <Users className="size-4 text-primary/80" />
-                <span>{effectiveHours.toFixed(1)} Hours • {selectedGuestBucket?.label}</span>
+                <span>
+                  {effectiveHours.toFixed(1)} Hours • {selectedGuestBucket?.label}
+                </span>
               </div>
             </div>
 
             <Separator className="mx-4 w-auto" />
 
             <div className="px-4 py-2 bg-background">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Price Summary</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Price Summary
+              </p>
               <div className="flex justify-between items-start text-sm text-foreground">
                 <div className="flex flex-col gap-0.5">
                   <span>Base Fee ({effectiveHours.toFixed(1)} hours)</span>
-                  <span className="text-muted-foreground text-xs">${dynamicHourlyRate.toFixed(2)} / hour x {effectiveHours.toFixed(1)} hrs</span>
+                  <span className="text-muted-foreground text-xs">
+                    ${dynamicHourlyRate.toFixed(2)} / hour x {effectiveHours.toFixed(1)} hrs
+                  </span>
                 </div>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
@@ -402,7 +429,11 @@ export function BookingFormSheet({
                         <FormItem>
                           <FormLabel>Project Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="E.g. Summer Campaign" className="w-full h-10" {...field} />
+                            <Input
+                              placeholder="E.g. Summer Campaign"
+                              className="w-full h-10"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -440,11 +471,21 @@ export function BookingFormSheet({
                     )}
                   />
                   <div className="pt-4 flex justify-end">
-                    <Button type="button" onClick={handleNext} disabled={isSubmitting || isPolling} size="lg" className="w-full sm:w-auto">
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      disabled={isSubmitting || isPolling}
+                      size="lg"
+                      className="w-full"
+                    >
                       {isSubmitting ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                        </>
                       ) : isPolling ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for Approval...</>
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for Approval...
+                        </>
                       ) : venue.instabook ? (
                         "Proceed to Payment"
                       ) : (
@@ -464,7 +505,11 @@ export function BookingFormSheet({
                       <FormItem>
                         <FormLabel>Card Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="0000 0000 0000 0000" className="w-full h-10" {...field} />
+                          <Input
+                            placeholder="0000 0000 0000 0000"
+                            className="w-full h-10"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -527,7 +572,9 @@ export function BookingFormSheet({
                       className="w-full sm:w-45"
                     >
                       {isSubmitting ? (
-                        <><Loader2 className="mr-2 size-4 animate-spin" /> Confirming…</>
+                        <>
+                          <Loader2 className="mr-2 size-4 animate-spin" /> Confirming…
+                        </>
                       ) : (
                         `Pay $${total.toFixed(2)}`
                       )}

@@ -73,7 +73,7 @@ const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number):
     )
   })
 
-async function compressImageFile(file: File): Promise<File> {
+export async function compressImageFile(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file
 
   // Keep gif/svg untouched to avoid animation/vector issues

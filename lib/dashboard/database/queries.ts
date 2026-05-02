@@ -1,7 +1,8 @@
 import { createServiceSupabaseClient } from "@/lib/supabase/service-client"
 import { ActionResult } from "@/lib/supabase/utils"
 import { OwnerKPIs, RenteeKPIs } from "../types"
-import { getDayRange } from "@/lib/format"
+import { DateUtils, getDayRange } from "@/lib/format"
+import { format } from "date-fns"
 
 export async function getRenteeKPIs(renteeId: string): Promise<ActionResult<RenteeKPIs>> {
   const supabase = createServiceSupabaseClient()
@@ -66,6 +67,9 @@ export async function getOwnerKPIs(ownerId: string): Promise<ActionResult<OwnerK
   const { start, end } = getDayRange(new Date().toISOString())
   const now = start
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString()
+  const { start: monthStart, end: monthEnd } = DateUtils.getMonthRange(new Date())
+  console.log("🚀 ~ getOwnerKPIs ~ monthEnd:", monthEnd)
+  console.log("🚀 ~ getOwnerKPIs ~ monthStart:", monthStart)
 
   // 1) Upcoming confirmed bookings as a rentee
   const { count: upcomingCount, error: upcomingErr } = await supabase
@@ -108,12 +112,67 @@ export async function getOwnerKPIs(ownerId: string): Promise<ActionResult<OwnerK
 
   const totalEarnings = spentRows?.reduce((acc, row) => acc + (row.total_amount ?? 0), 0) ?? 0
 
+  // 4) Total venues
+  const { count: venuesCount, error: venuesErr } = await supabase
+    .from("venues")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", ownerId)
+
+  if (venuesErr) {
+    console.error("Error fetching total venues:", venuesErr)
+    throw venuesErr
+  }
+
+  const totalVenues = venuesCount ?? 0
+
+  // 5) Bookings this month
+  const { data: bookingsThisMonthData, count: bookingsThisMonthCount, error: bookingsThisMonthErr } = await supabase
+    .from("bookings")
+    .select(`
+        id,
+        start_at,
+        end_at,
+        status,
+        created_at,
+        total_amount,
+        venue:venues!bookings_venue_id_fkey!inner (
+          name,
+          venue_type
+        ),
+        rentee:users!bookings_rentee_id_fkey!inner (
+          id,
+          display_name,
+          account_type
+        ),
+        owner:users!bookings_owner_id_fkey!inner (
+          id,
+          display_name,
+          account_type
+        )
+        `, { count: "exact" })
+    .eq("owner_id", ownerId)
+    .gte("start_at", monthStart)
+    .lt("start_at", monthEnd)
+
+  if (bookingsThisMonthErr) {
+    console.error("Error fetching bookings this month:", bookingsThisMonthErr)
+    throw bookingsThisMonthErr
+  }
+
+  const totalBookingsThisMonth = bookingsThisMonthCount ?? 0
+
+
   return {
     success: true,
     data: {
       upcoming_bookings: upcomingCount ?? 0,
       pending_requests: pendingCount ?? 0,
       total_earnings: totalEarnings,
+      total_venues: totalVenues,
+      bookings_this_month: {
+        count: totalBookingsThisMonth,
+        data: bookingsThisMonthData,
+      },
     } as unknown as OwnerKPIs,
     statusCode: 200,
   }
